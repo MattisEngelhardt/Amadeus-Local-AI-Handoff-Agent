@@ -1,0 +1,31 @@
+# Speech to Code Default Configuration
+
+# The hotkey to start and stop recording (e.g. "ctrl+space" or "ctrl+shift+a").
+hotkey: "ctrl+space"
+
+# Directory where generated projects will be scaffolded.
+# Can be a relative path or an absolute path (e.g. "C:/Users/engel/OneDrive/Projects").
+output_dir: "./output"
+
+# API Model Settings
+models:
+  llm_provider: "gemini"             # "gemini" or "claude" or "openai"
+  whisper: "whisper-1"
+  claude: "claude-3-5-sonnet-20241022"
+  gemini: "gemini-1.5-pro"
+  whisper_mode: "local"              # "local" for offline free transcription, "api" for OpenAI API key
+  whisper_local_model: "base"         # "tiny", "base", "small", "medium"
+
+# Audio Recording Settings
+audio:
+  samplerate: 16000  # 16kHz is ideal for Whisper API
+  channels: 1        # Mono recording
+  temp_filename: "temp_recording.wav"
+
+# Quality Criteria & Development Style Prefs
+quality_criteria:
+  - "Strict Python type hints (PEP 484) on all functions"
+  - "Includes README.md with setup instructions"
+  - "Includes CLAUDE.md with commands, build steps, and structure"
+  - "Proper error handling and logging (not raw print statements)"
+  - "Clean separation of core logic from presentation/CLI/API layers"

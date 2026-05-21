@@ -1,0 +1,37 @@
+# Project type mappings to default build/run/test commands and properties
+
+"FastAPI Web API":
+  run_command: "uvicorn main:app --reload"
+  test_command: "pytest"
+  lint_command: "black --check ."
+  has_env: true
+
+"Streamlit App":
+  run_command: "streamlit run app.py"
+  test_command: "pytest"
+  lint_command: "black --check ."
+  has_env: false
+
+"Python CLI Tool":
+  run_command: "python main.py"
+  test_command: "pytest"
+  lint_command: "black --check ."
+  has_env: false
+
+"Tkinter Desktop App":
+  run_command: "python main.py"
+  test_command: "pytest"
+  lint_command: "black --check ."
+  has_env: false
+
+"NodeJS CLI":
+  run_command: "node index.js"
+  test_command: "npm test"
+  lint_command: "npm run lint"
+  has_env: false
+
+"default":
+  run_command: "python main.py"
+  test_command: "pytest"
+  lint_command: ""
+  has_env: false

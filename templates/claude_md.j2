@@ -1,0 +1,46 @@
+# {{ display_name }} — Developer Guidelines
+
+{{ short_description }}
+
+## Build and Run Commands
+
+Here are the key commands to run, build, and test this project:
+
+| Action | Command | Description |
+|---|---|---|
+| **Run Application** | `{{ run_command }}` | Runs the primary application entry point. |
+| **Run Tests** | `{{ test_command }}` | Executes the unit/integration tests. |
+{% if lint_command -%}
+| **Lint / Format** | `{{ lint_command }}` | Code quality and formatting checks. |
+{% endif -%}
+
+## Code Style & Architecture Guidelines
+
+Ensure all contributions to **{{ display_name }}** follow these principles:
+- **Design philosophy**: Clean, modular code structure. Logic separated from presentation.
+{% for criterion in quality_criteria -%}
+- **{{ criterion }}**
+{% endfor %}
+
+## Directory Structure
+
+A map of the key files in this project:
+
+```
+{% for file in files_to_create -%}
+├── {{ file.file_path }}  # {{ file.purpose }}
+{% endfor -%}
+```
+
+## Setup & Configuration
+
+1. Create a virtual environment and activate it:
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   ```
+2. Install the dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. (If applicable) Set up configuration values in `.env` based on `.env.example`.

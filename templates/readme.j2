@@ -1,0 +1,62 @@
+# {{ display_name }}
+
+{{ short_description }}
+
+Developed as part of an agentic workflow using VoiceForge ("Amadeus").
+
+---
+
+## Tech Stack
+
+This project is built using:
+{% for tech in tech_stack -%}
+- **{{ tech }}**
+{% endfor %}
+
+---
+
+## Installation & Setup
+
+1. **Clone or copy this folder** to your local machine.
+2. **Set up a virtual environment**:
+   ```bash
+   python -m venv .venv
+   ```
+3. **Activate the environment**:
+   * Windows:
+     ```bash
+     .venv\Scripts\activate
+     ```
+   * macOS/Linux:
+     ```bash
+     source .venv/bin/activate
+     ```
+4. **Install dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+{% if has_env -%}
+5. **Environment Variables**:
+   Copy `.env.example` to `.env` and fill in your keys:
+   ```bash
+   cp .env.example .env
+   ```
+{% endif -%}
+
+---
+
+## Usage
+
+To start the application, run:
+```bash
+{{ run_command }}
+```
+
+---
+
+## Running Tests
+
+To run automated tests, use:
+```bash
+{{ test_command }}
+```
