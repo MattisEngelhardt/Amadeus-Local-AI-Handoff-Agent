@@ -10,6 +10,8 @@ Das Endprodukt ist ein Verzeichnis, das eine `CLAUDE.md` (als Master-Prompt) und
 
 ## Die Core-Pipeline
 
+![Amadeus Workflow](assets/amadeus_workflow.png)
+
 ### 1. Ingestion & Gap Analysis
 *   **Audio Capture:** Eine minimalistische Desktop-UI (Floating Bar) nimmt via Hotkey Audio in hoher Qualität auf.
 *   **Transkription:** Die OpenAI Whisper API transkribiert das Audio fehlerfrei (insbesondere bei deutschen Fachtexten).
