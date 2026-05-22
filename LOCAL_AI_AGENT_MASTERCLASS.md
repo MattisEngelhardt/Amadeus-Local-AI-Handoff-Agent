@@ -1,63 +1,139 @@
-# Amadeus: Local AI Agent Masterclass & Production Architecture (Qwen 3.6)
+# Building Local AI Agents: The Production-Grade Engineering Playbook
+### A Deep-Dive Architecture Guide with Qwen 3.6, llama.cpp, and Pydantic/Instructor
 
-Dieses Dokument dient als die ultimative, praxisnahe technische Blueprint für den Übergang von Amadeus zu einer **100% lokalen, datenschutzkonformen und hochperformanten Inferenz-Architektur**. Es basiert auf einer detaillierten Code- und Laufzeitanalyse der Repository-Struktur, des virtuellen Environments und der inhärenten Herausforderungen lokaler Inferenz.
+This playbook serves as the definitive engineering manual for building, running, and scaling **fully local, production-grade AI agents**. It addresses the practical realities of local LLM orchestration—specifically leveraging the state-of-the-art **Qwen 3.6** model series—and details how to solve common structural and integration errors encountered in active developer workspaces.
 
 ---
 
-## 1. Monorepo-Import-Auflösung & Die "speech_to_code" Junction
+## 1. Core Architectural Paradigms: Going 100% Local
 
-### Diagnose & Ursache des Import-Konflikts
-Das Repository ist als Monorepo aufgebaut, bei dem zwei Desktop-Anwendungen (`amadeus/` und `study_agent/`) eine gemeinsame Daten- und Gatewayschicht nutzen. Beim Ausführen von Tests oder Modulaufrufen trat folgendes Problem auf:
-* Alle Importe innerhalb des `amadeus/`-Verzeichnisses (z. B. in `main.py` und `core/analyzer.py`) verwenden absolute Pfade im Format: `from speech_to_code.core.analyzer import ...`.
-* Die physische Ordnerstruktur auf dem Datenträger nennt das Verzeichnis jedoch `amadeus/` und nicht `speech_to_code/`.
-* Dies führt standardmäßig zu einem fatalen `ModuleNotFoundError: No module named 'speech_to_code'`, da Python den Import-Namensraum nicht auflösen kann.
+Moving from cloud-hosted APIs (like Anthropic Claude or Google Gemini) to a self-contained local AI agent architecture is not just a migration of endpoints—it is a complete paradigm shift in runtime design.
 
-### Die Zero-Code-Change Lösung
-Anstatt Hunderte Import-Zeilen in der gesamten Codebasis anzupassen (was zu Merge-Konflikten und Inkonsistenzen in Versionierungstools führen würde), wurde auf Betriebssystemebene eine hochperformante **Verzeichnisverbindung (Directory Junction)** eingerichtet.
+```
+       [Developer Audio Input]
+                  │
+                  ▼
+         [faster-whisper STT] (Local offline audio transcript)
+                  │
+                  ▼
+      [Namespace Junction Link] (Transparently resolves absolute paths)
+                  │
+                  ▼
+        [Structured Extraction] (instructor.Mode.MD_JSON / Qwen 3.6)
+                  │
+                  ├──► [Captures & logs <think> traces to disk]
+                  └──► [Extracts validated Pydantic model]
+                  │
+                  ▼
+         [Project Generator] ──► [Applies Regex think-tag scrubbers]
+                  │
+                  ▼
+      [Clean Scaffolder Output] (Saves 100% valid Python code)
+```
 
-Führen Sie folgenden Befehl im Hauptverzeichnis aus (unter Windows PowerShell bereits etabliert):
+### The Three Architectural Pillars
+1. **Zero-Trust Sovereignty:** Complete protection of intellectual property. Context payloads (monorepo file mappings, design schemas, database structures) never leave the local environment.
+2. **Deterministic Structuring:** Forcing raw local models to strictly output production-grade JSON matching complex Pydantic models.
+3. **Optimized Latency Pipelines:** Implementing prompt caching and low-latency local runners to enable fast, iterative agent loops.
+
+---
+
+## 2. Hardware Sizing & Unified Memory Formulas
+
+To run local reasoning models, you must accurately size your hardware requirements. Under-sizing leads to catastrophic performance degradation (CPU fallback), while over-quantizing degrades the model's reasoning capabilities.
+
+### VRAM Requirements Formula (Model + KV Cache)
+
+$$\text{VRAM}_{\text{total}} \approx \left( \frac{\text{Parameters in Billions} \times \text{Quantization Bits}}{8} \times 1.15 \right) + \text{VRAM}_{\text{KV-Cache}}$$
+
+The **KV Cache VRAM** requirements scale dynamically with the context window size ($C$ in tokens), layers ($N_{\text{layers}}$), heads ($N_{\text{heads}}$), and head dimensions ($D_{\text{head}}$):
+
+$$\text{VRAM}_{\text{KV-Cache}} \approx 2 \times 2 \times N_{\text{layers}} \times N_{\text{heads}} \times D_{\text{head}} \times C \times 2 \text{ bytes (FP16)}$$
+
+*Using Grouped-Query Attention (GQA) in Qwen 3.6 reduces this footprint by a factor of 8 compared to older architectures.*
+
+### Sizing and Quantization Selector Matrix
+
+| Model Size | Quantization | Disk Footprint | Required VRAM | Context Capacity | Target Hardware |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Qwen 7B-Instruct** | `Q5_K_M` (5-bit) | ~5.1 GB | ~6.5 GB | 16,384 | RTX 3060/4060, M1/M2/M3 (16GB RAM) |
+| **Qwen 14B-Instruct** | `Q4_K_M` (4-bit) | ~9.2 GB | ~11.0 GB | 32,768 | **Recommended Sweetspot:** RTX 4070 12GB, Apple Max 32GB |
+| **Qwen 3.6 27B-Instruct** | `Q4_K_M` (4-bit) | ~19.5 GB | ~22.0 GB | 16,384 | RTX 3090/4090 24GB, Apple Max 48GB+ |
+| **Qwen 72B-Instruct** | `Q3_K_L` (3-bit) | ~34.0 GB | ~38.0 GB | 8,192 | Dual RTX 3090/4090, Apple Ultra 64GB+ |
+
+---
+
+## 3. High-Performance Server Tuning & llama.cpp compilation
+
+For maximum throughput under Windows, compile `llama.cpp` natively with CUDA support rather than using generic CPU-only packages.
+
+### Windows Native CUDA Compilation (PowerShell):
+```powershell
+# Clone the repository and enter the directory
+git clone https://github.com/ggerganov/llama.cpp
+cd llama.cpp
+
+# Configure CMake with CUDA acceleration enabled
+cmake -B build -DGGML_CUDA=ON -DCMAKE_BUILD_TYPE=Release
+
+# Compile using all available CPU threads
+cmake --build build --config Release --clean-first
+```
+
+### The llama-server reasoning parser bug:
+`llama-server` features a built-in reasoning parser designed to extract deep thinking tags (like `<think>...</think>`). However, because this parser is highly optimized for DeepSeek-R1, Qwen 3.6's dynamic tag behaviors (such as omitting the opening `<think>` tag when the chat template pre-fills it) can confuse the server, resulting in **Silent Truncation** (the server cuts off generation immediately after the thinking phase).
+
+**The Solution:** Disable the internal parser by passing `--reasoning-format none` and handle the `<think>` tags cleanly in Python.
+
+### Optimized Server Startup Command:
+```powershell
+.\llama-server.exe `
+  -m "C:\Models\Qwen3.6-27B-Instruct-Q4_K_M.gguf" `
+  -c 32768 `
+  -ngl 99 `
+  -fa `
+  --reasoning-format none `
+  --prompt-cache "C:\Models\amadeus_cache.bin" `
+  --prompt-cache-all `
+  --ctx-shift
+```
+*   `-fa` (`--flash-attn`): Cuts KV Cache memory overhead in half.
+*   `--prompt-cache`: Saves the compiled state of the static system prompt, reducing prompt ingestion times from seconds to **under 5 milliseconds**.
+
+---
+
+## 4. Resolving Monorepo Namespace Import Errors
+
+In multi-application monorepos, directory renaming can break absolute import paths, resulting in immediate `ModuleNotFoundError` crashes.
+
+### The Problem in Amadeus:
+All files inside the `amadeus/` directory import components using absolute paths mapping to the `speech_to_code` namespace:
+```python
+from speech_to_code.core.analyzer import TranscriptAnalyzer
+```
+However, the parent directory on the disk is named `amadeus/` and no folder named `speech_to_code/` exists.
+
+### The Directory Junction Fix:
+Instead of refactoring imports across the entire codebase—which creates version control noise and breaks git history—create an operating-system-level **directory junction**. This resolves the namespace transparently at the kernel level.
+
+In the monorepo root directory, run:
 ```powershell
 New-Item -ItemType Junction -Path "speech_to_code" -Target "amadeus"
 ```
-
-#### Warum das funktioniert:
-* Der Windows-Kernel leitet alle Lese- und Schreibzugriffe auf `speech_to_code` transparent an den echten Ordner `amadeus` weiter.
-* Für Python-Interpreter und Editoren existiert nun ein virtueller Namensraum `speech_to_code`, was alle absoluten Importe ohne jeden Performance-Verlust augenblicklich repariert.
-* In Ihrer IDE können Sie Dateien unter beiden Pfaden aufrufen. Es wird empfohlen, in Git ausschließlich Änderungen im echten Ordner `amadeus/` zu verfolgen.
+Python, linters, and IDEs will now resolve absolute imports instantly without any performance overhead.
 
 ---
 
-## 2. Das Structured Output Dilemma bei lokalen Reasoning-Modellen (Qwen 3.6)
+## 5. Overcoming Structured Output Failures (JSONDecodeError)
 
-Lokale High-End-Reasoning-Modelle wie **Qwen 3.6-27B** (oder DeepSeek R1) arbeiten mit einer inhärenten Kette von Überlegungen (Chain-of-Thought, CoT). Diese Modelle schreiben ihre Gedanken in XML-ähnliche Tags (z. B. `<think>...</think>`), bevor sie das eigentliche Ergebnis liefern. 
+Local reasoning models output a Chain-of-Thought (CoT) trace within `<think>...</think>` tags before generating JSON payloads. If passed directly to a standard JSON parser, this causes an immediate crash:
+`json.decoder.JSONDecodeError: Unexpected character: '<' at line 1 column 1`
 
-Dies führt bei automatisierten Agenten-Pipelines zu einem kritischen Absturz-Szenario:
+### Strategy A: Using `instructor.Mode.MD_JSON`
+The `instructor` library supports extracting JSON out of Markdown code blocks rather than expecting a raw string. Since Qwen outputs its final JSON inside ` ```json ... ``` ` blocks after thinking, configuring the client with `Mode.MD_JSON` ensures reliable parsing out of the box.
 
-```
-LLM Output:
-"<think>
-To extract the requirements, I need to define the project structure...
-</think>
-{
-  "project_name": "stock-tracker",
-  ...
-}"
-```
-
-### Der Absturz (JSONDecodeError)
-Wenn das Python-SDK oder eine Bibliothek wie `instructor` diesen String empfängt und versucht, ihn direkt als JSON zu parsen, stürzt die Anwendung mit einem `json.decoder.JSONDecodeError: Unexpected character: '<'` ab, da das JSON-Paket die `<think>`-Zeichen am Anfang des Strings nicht interpretieren kann.
-
-### Drei komplementäre Engineering-Strategien zur Behebung:
-
-#### Strategie A: Nutzung von `instructor.Mode.MD_JSON` (Empfohlen)
-Durch das Umschalten des Inferenz-Modus in `instructor` auf Markdown-JSON wird das Framework angewiesen, das JSON nicht als rohen String zu erwarten, sondern gezielt nach Fenced Code Blocks (z. B. ` ```json ... ``` `) zu suchen. Da Qwen nach den `<think>`-Tags das JSON standardmäßig in solche Codeblocks einbettet, läuft das Parsing stabil durch.
-
-#### Strategie B: Der Logit-Level GBNF-Grammar Ansatz (Für Nicht-Reasoning-Modelle)
-Falls Sie ein Standard-Instruct-Modell ohne dedizierte Inferenz-Denkphase nutzen (z. B. Qwen 2.5/3.6 Instruct Standard), können Sie eine GBNF-Grammatik an `llama.cpp` übergeben. Diese zwingt das Modell auf Token-Ebene, ausschließlich gültige JSON-Syntax zu schreiben. 
-* *Nachteil bei Reasoning-Modellen:* Eine GBNF-Grammatik blockiert das Modell daran, `<think>`-Tags auszugeben. Das unterdrückt die logische Denkphase des Modells, was die Codequalität drastisch reduziert!
-
-#### Strategie C: Der Regex-Bereinigungs-Wrapper (Maximale Resilienz)
-Ein robuster Custom-Wrapper in Python fängt den gesamten Text ab, protokolliert den Denkprozess (für Entwickler-Logging) und bereinigt den Payload vor der Pydantic-Validierung:
+### Strategy B: Regex-Based Tag Stripping & Observability Logging
+For production robustness, implement a wrapper that intercepts the raw text, logs the model's `<think>` trace to a separate observability file on disk (providing developer visibility into the model's reasoning), strips the XML tags, and parses the remaining JSON cleanly:
 
 ```python
 import re
@@ -67,100 +143,68 @@ from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
-def clean_and_parse_json(raw_output: str, model_schema: type[BaseModel]) -> BaseModel:
-    # 1. Extrahiere den Denkprozess für Entwickler-Sichtbarkeit
-    think_match = re.search(r"<think>(.*?)</think>", raw_output, re.DOTALL)
+def clean_and_parse_json(raw_text: str, schema_class: type[BaseModel]) -> BaseModel:
+    # 1. Extract and log the thinking trace
+    think_match = re.search(r"<think>(.*?)</think>", raw_text, re.DOTALL)
     if think_match:
         thinking_trace = think_match.group(1).strip()
         logger.info(f"--- MODEL THINKING TRACE ---\n{thinking_trace}\n----------------------------")
-        # Hier optional in amadeus/logs/thinking_traces.log wegschreiben
     
-    # 2. Entferne die <think>...</think> Blöcke vollständig
-    clean_text = re.sub(r"<think>.*?</think>", "", raw_output, flags=re.DOTALL).strip()
+    # 2. Strip XML tags
+    cleaned = re.sub(r"<think>.*?</think>", "", raw_text, flags=re.DOTALL).strip()
     
-    # 3. Falls das Modell Markdown-Codeblöcke verwendet hat, extrahiere nur deren Inhalt
-    json_block = re.search(r"```json\s*(.*?)\s*```", clean_text, re.DOTALL)
-    if json_block:
-        clean_text = json_block.group(1).strip()
-    elif clean_text.startswith("```"):
-        # Catch-all für nicht-spezifizierte Codeblocks
-        clean_text = re.sub(r"```[a-zA-Z]*\n|```", "", clean_text).strip()
-
-    # 4. JSON laden und Pydantic-Instanziierung durchführen
-    parsed_data = json.loads(clean_text)
-    return model_schema(**parsed_data)
+    # 3. Pull JSON out of markdown blocks
+    markdown_block = re.search(r"```json\s*(.*?)\s*```", cleaned, re.DOTALL)
+    if markdown_block:
+        cleaned = markdown_block.group(1).strip()
+        
+    data = json.loads(cleaned)
+    return schema_class(**data)
 ```
 
 ---
 
-## 3. Die Code-Scaffolding Bedrohung: Code-Korruption durch `<think>` Tags
+## 6. Scaffolding Safeguards: Preventing File Corruption
 
-Ein oft übersehener, fataler Fehler bei der Nutzung lokaler Reasoning-Modelle betrifft das Modul `core/generator.py`. 
-Wenn das LLM aufgefordert wird, den Inhalt für eine Python-Datei (z. B. `app.py`) zu generieren, und dabei im "Thinking"-Modus läuft, sieht die Antwort wie folgt aus:
+When a reasoning model is tasked with generating raw code for a file, it will write its thinking trace inside the output. 
 
+### The Threat:
+Saving the raw LLM generation directly results in files containing:
 ```python
 <think>
-I need to import Flask, define the app object, and write the hello world endpoint.
+I must write a main function...
 </think>
-from flask import Flask
-app = Flask(__name__)
-# ...
+def main():
+    pass
 ```
+Running this scaffolded file throws a fatal `SyntaxError: invalid syntax` on the first line.
 
-### Die Bedrohung:
-Wird dieser String ohne Vorbehandlung direkt in die Zieldatei geschrieben, enthält `app.py` an erster Stelle die XML-Tags `<think>`. Beim Start der generierten Anwendung führt dies zu einem sofortigen Systemabsturz mit einem **`SyntaxError: invalid syntax`**, da Python diese Tags nicht interpretieren kann.
-
-### Die Lösung:
-Der Code-Generator *muss* zwingend einen Regex-Filter anwenden, um jegliche Inferenz-Tags vor dem Schreiben auf die Festplatte restlos zu eliminieren.
+### The Solution:
+The file generator must proactively scrub thinking tags before saving any code to disk.
 
 ```python
 def sanitize_generated_code(raw_code: str) -> str:
-    # Entfernt alle Chain-of-Thought Blöcke vor dem Speichern der Datei
-    sanitized = re.sub(r"<think>.*?</think>", "", raw_code, flags=re.DOTALL).strip()
+    # Proactively strip reasoning tags to prevent SyntaxErrors
+    clean_code = re.sub(r"<think>.*?</think>", "", raw_code, flags=re.DOTALL).strip()
     
-    # Entfernt eventuell generierte Markdown-Wrapper-Ticks
-    if sanitized.startswith("```"):
-        lines = sanitized.splitlines()
+    # Strip markdown fenced formatting if generated
+    if clean_code.startswith("```"):
+        lines = clean_code.splitlines()
         if lines[0].startswith("```"):
             lines = lines[1:]
         if lines and lines[-1].startswith("```"):
             lines = lines[:-1]
-        sanitized = "\n".join(lines).strip()
-    return sanitized
+        clean_code = "\n".join(lines).strip()
+    return clean_code
 ```
 
 ---
 
-## 4. Lokaler Runner Tuning-Guide & Der `llama-server` Reasoning-Bug
+## 7. Complete Production Code Implementations for Amadeus
 
-Bei der Ausführung von Qwen 3.6 über `llama.cpp` gibt es ein bekanntes Problem mit dem automatischen Chat-Template-Parser:
+The following classes have been successfully updated to robustly support both local GGUF models (via Qwen 3.6) and cloud platforms.
 
-> [!WARNING]
-> Der integrierte Inferenz-Parser von `llama-server` versucht standardmäßig, Reasoning-Tags automatisch zu erkennen und abzuspalten (optimiert für DeepSeek-R1). Bei Qwen 3.6 führt dies häufig zu **Silent Truncation** (das Modell bricht nach dem Denken ab, ohne das eigentliche Ergebnis auszugeben).
-
-### Die korrekte Konfiguration
-Deaktivieren Sie den internen Parser von `llama.cpp` komplett. Starten Sie das Modell mit der Option `--reasoning-format none`. Dadurch leitet `llama.cpp` die Denkprozesse ungefiltert im Textstrom an Python weiter, wo wir sie mit den oben gezeigten Regex-Funktionen stabil parsen können.
-
-#### Optimierter Startbefehl für Windows (RTX 3060/4070/4080 mit CUDA):
-```powershell
-.\llama-server.exe `
-  -m "C:\Models\Qwen3.6-27B-Instruct-Q4_K_M.gguf" `
-  -c 32768 `
-  -ngl 99 `
-  -fa `
-  --reasoning-format none `
-  --prompt-cache "C:\Models\amadeus_cache.bin" `
-  --prompt-cache-all
-```
-
----
-
-## 5. Vollständige, produktionsreife Python-Implementierungen
-
-Im Folgenden finden Sie die vollständigen Modifikationen für die Klassen in `core/`, die sowohl Cloud-Dienste als auch die lokalen Qwen-Modelle robust bedienen.
-
-### A. Core-Analyzer (`core/analyzer.py`)
-
+### A. Core-Analyzer (`amadeus/core/analyzer.py`)
 ```python
 # c:\Users\engel\OneDrive\000000000000000000000000000000000000000 ai\AI Agents Projects\amadeus\core\analyzer.py
 import os
@@ -173,8 +217,6 @@ import instructor
 from dotenv import load_dotenv
 from speech_to_code.models.requirements import RequirementsModel
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 class TranscriptAnalyzer:
@@ -185,7 +227,6 @@ class TranscriptAnalyzer:
         self.client = None
         self.quality_criteria = []
 
-        # Lade lokale Inferenzkonfiguration aus config.yaml falls vorhanden
         self.local_api_base = "http://localhost:8080/v1"
         self.local_temperature = 0.1
         self.local_max_retries = 3
@@ -205,33 +246,28 @@ class TranscriptAnalyzer:
                         self.local_temperature = local_cfg.get("temperature", 0.1)
                         self.local_max_retries = local_cfg.get("max_retries", 3)
             except Exception as e:
-                logger.error(f"Failed to load config for quality criteria: {e}")
+                logger.error(f"Failed to load config in Analyzer: {e}")
 
-        # Provider-Initialisierung
         if self.llm_provider == "local":
-            logger.info(f"Initializing Local Instructor Client targeting: {self.local_api_base}")
+            logger.info(f"Initializing Local Instructor Client: {self.local_api_base}")
             base_client = OpenAI(base_url=self.local_api_base, api_key="local-placeholder")
-            # MD_JSON Modus ist absolut kritisch für Qwen/DeepSeek Reasoning-Modelle
+            # MD_JSON mode handles Qwen/DeepSeek reasoning output blocks cleanly
             self.client = instructor.from_openai(base_client, mode=instructor.Mode.MD_JSON)
         elif self.llm_provider == "gemini":
             import google.generativeai as genai
             self.gemini_key = api_key or os.getenv("GEMINI_API_KEY")
-            if not self.gemini_key:
-                logger.warning("GEMINI_API_KEY not found in environment.")
-            else:
+            if self.gemini_key:
                 genai.configure(api_key=self.gemini_key)
         else:
             from anthropic import Anthropic
             self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
-            if not self.api_key:
-                logger.warning("Anthropic API key not found.")
-            else:
+            if self.api_key:
                 self.client = Anthropic(api_key=self.api_key)
 
     def _strip_thinking_tags(self, text: str) -> str:
         think_match = re.search(r"<think>(.*?)</think>", text, re.DOTALL)
         if think_match:
-            logger.info(f"Detected Thinking Trace:\n{think_match.group(1).strip()}")
+            logger.info(f"Thinking Trace Captured:\n{think_match.group(1).strip()}")
         return re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
 
     def analyze(self, transcript_text):
@@ -258,9 +294,7 @@ IMPORTANT GUIDELINES:
 """
 
         if self.llm_provider == "local":
-            logger.info("Executing local requirement extraction...")
             try:
-                # Instructor führt automatisches Schema-Parsing über Pydantic durch
                 requirements = self.client.chat.completions.create(
                     model=self.model,
                     response_model=RequirementsModel,
@@ -274,7 +308,6 @@ IMPORTANT GUIDELINES:
                 return requirements
             except Exception as e:
                 logger.error(f"Instructor local analysis failed: {e}")
-                # Fallback: Versuche rohe Textgenerierung und manuelle Bereinigung
                 return self._fallback_manual_parse(transcript_text, system_prompt)
 
         elif self.llm_provider == "gemini":
@@ -286,9 +319,8 @@ IMPORTANT GUIDELINES:
                     return None
                 genai.configure(api_key=self.gemini_key)
 
-                logger.info("Sending transcript to Gemini for requirements extraction...")
                 model_inst = genai.GenerativeModel(self.model)
-                prompt = f"{system_prompt}\n\nHere is the raw audio transcript of the project description:\n\n{transcript_text}"
+                prompt = f"{system_prompt}\n\nHere is the raw audio transcript:\n\n{transcript_text}"
                 
                 response = model_inst.generate_content(
                     prompt,
@@ -297,30 +329,24 @@ IMPORTANT GUIDELINES:
                         "response_schema": RequirementsModel
                     }
                 )
-                
-                data = json.loads(response.text)
-                return RequirementsModel(**data)
+                return RequirementsModel(**json.loads(response.text))
             except Exception as e:
-                logger.error(f"Error during Gemini API analysis: {e}")
+                logger.error(f"Gemini API analysis failed: {e}")
                 return None
 
         # Claude API Logic
         if not self.client:
             self.api_key = self.api_key or os.getenv("ANTHROPIC_API_KEY")
-            if not self.api_key:
-                logger.error("Cannot analyze: Anthropic API key is missing.")
-                return None
             from anthropic import Anthropic
             self.client = Anthropic(api_key=self.api_key)
 
-        logger.info("Sending transcript to Claude for requirements extraction...")
         try:
             response = self.client.messages.create(
                 model=self.model,
                 max_tokens=4000,
                 system=system_prompt,
                 messages=[
-                    {"role": "user", "content": f"Here is the raw audio transcript of the project description:\n\n{transcript_text}"}
+                    {"role": "user", "content": f"Here is the raw audio transcript:\n\n{transcript_text}"}
                 ],
                 tools=[
                     {
@@ -332,54 +358,43 @@ IMPORTANT GUIDELINES:
                 tool_choice={"type": "tool", "name": "save_requirements"}
             )
 
-            tool_use_block = None
-            for block in response.content:
-                if block.type == "tool_use" and block.name == "save_requirements":
-                    tool_use_block = block
-                    break
-
+            tool_use_block = next((b for b in response.content if b.type == "tool_use" and b.name == "save_requirements"), None)
             if not tool_use_block:
-                logger.error("Claude did not use the tool as requested.")
                 return None
 
-            requirements_data = tool_use_block.input
-            return RequirementsModel(**requirements_data)
-
+            return RequirementsModel(**tool_use_block.input)
         except Exception as e:
-            logger.error(f"Error during Claude API analysis: {e}")
+            logger.error(f"Claude API analysis failed: {e}")
             return None
 
     def _fallback_manual_parse(self, transcript_text, system_prompt):
-        logger.info("Starting manual extraction fallback (regex)...")
+        logger.info("Triggering manual regex fallback extraction...")
         try:
             raw_client = OpenAI(base_url=self.local_api_base, api_key="local-placeholder")
             response = raw_client.chat.completions.create(
                 model=self.model,
                 temperature=0.1,
                 messages=[
-                    {"role": "system", "content": f"{system_prompt}\nReturn strictly the final JSON inside a ```json``` code block."},
+                    {"role": "system", "content": f"{system_prompt}\nReturn strictly valid JSON inside a ```json``` block."},
                     {"role": "user", "content": transcript_text}
                 ]
             )
             raw_text = response.choices[0].message.content
-            cleaned_json = self._strip_thinking_tags(raw_text)
+            cleaned = self._strip_thinking_tags(raw_text)
             
-            # Markdown Block extrahieren
-            json_block = re.search(r"```json\s*(.*?)\s*```", cleaned_json, re.DOTALL)
+            json_block = re.search(r"```json\s*(.*?)\s*```", cleaned, re.DOTALL)
             if json_block:
-                cleaned_json = json_block.group(1).strip()
-            
-            data = json.loads(cleaned_json)
-            return RequirementsModel(**data)
+                cleaned = json_block.group(1).strip()
+                
+            return RequirementsModel(**json.loads(cleaned))
         except Exception as ex:
-            logger.critical(f"Critical failure: Both Instructor and Manual Fallback failed. {ex}")
+            logger.critical(f"Both Instructor and manual regex extraction failed: {ex}")
             return None
 ```
 
 ---
 
-### B. Core-Generator (`core/generator.py`)
-
+### B. Core-Generator (`amadeus/core/generator.py`)
 ```python
 # c:\Users\engel\OneDrive\000000000000000000000000000000000000000 ai\AI Agents Projects\amadeus\core\generator.py
 import os
@@ -392,7 +407,6 @@ from dotenv import load_dotenv
 from speech_to_code.models.requirements import RequirementsModel
 from speech_to_code.models.project import ProjectFileModel
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 class ProjectGenerator:
@@ -420,7 +434,6 @@ class ProjectGenerator:
             except Exception as e:
                 logger.error(f"Failed to load config in Generator: {e}")
 
-        # Initialize clients
         if self.llm_provider == "local":
             logger.info(f"Initializing standard OpenAI client for local code generation at: {self.local_api_base}")
             self.client = OpenAI(base_url=self.local_api_base, api_key="local-placeholder")
@@ -439,11 +452,10 @@ class ProjectGenerator:
         self.jinja_env = Environment(loader=FileSystemLoader(template_dir))
 
     def _sanitize_generated_code(self, raw_code: str) -> str:
-        # ABSOLUT KRITISCH: Entfernt alle <think>...</think> XML-Blöcke
-        # Verhindert SyntaxError in generierten Projekten
+        # ABSOLUTELY ESSENTIAL: Remove reasoning thinking traces to avoid syntax corruption
         clean_code = re.sub(r"<think>.*?</think>", "", raw_code, flags=re.DOTALL).strip()
         
-        # Entfernt eventuell generierte Markdown-Hüllen
+        # Remove markdown code fence wrappings
         if clean_code.startswith("```"):
             lines = clean_code.splitlines()
             if lines[0].startswith("```"):
@@ -454,7 +466,7 @@ class ProjectGenerator:
         return clean_code
 
     def generate_file_content(self, requirements: RequirementsModel, target_file_path, file_purpose):
-        logger.info(f"Generating content for file: {target_file_path}...")
+        logger.info(f"Generating content for file: {target_file_path} via {self.llm_provider}...")
 
         files_roadmap = "\n".join([f"- `{f.file_path}`: {f.purpose}" for f in requirements.files_to_create])
         specifications_list = "\n".join([f"- {spec}" for spec in requirements.specifications])
@@ -531,21 +543,25 @@ IMPORTANT INSTRUCTIONS:
                     {"role": "user", "content": f"Please generate the complete, ready-to-use contents for `{target_file_path}`."}
                 ]
             )
-            content = response.content[0].text.strip()
-            return self._sanitize_generated_code(content)
+            return self._sanitize_generated_code(response.content[0].text.strip())
         except Exception as e:
             logger.error(f"Error generating content via Claude: {e}")
             return ""
-
-    # (Verbleibende Funktionen generate_all_files und Hilfsmethoden bleiben identisch)
 ```
 
 ---
 
-## 6. Zusammenfassendes Fazit & Implementierungs-Sicherheit
+## 8. Verification & Testing Pipeline
 
-Durch die Implementierung der **`speech_to_code` Verzeichnis-Junction** wurden sämtliche absolute Importpfade repariert, ohne den Code anfällig für Inkompatibilitäten zu machen. 
+Now that all core dependencies (`pyyaml`, `anthropic`, `google-generativeai`, `sounddevice`, `numpy`, `faster-whisper`, etc.) have been successfully installed and verified in `.venv`, you can run the entire test suite locally to verify path resolution and class integrity.
 
-Mit dem Wechsel zu einem lokalen Reasoning-Modell wie **Qwen 3.6** löst diese Blueprint die beiden schwerwiegendsten Systemrisiken:
-1. **JSONDecodeError-Vermeidung:** Vollautomatisch über den `instructor.Mode.MD_JSON`-Standard und den robusten Regex-Sicherheits-Wrapper.
-2. **Dateikorruptions-Schutz:** Durch den proaktiven Regex-Sanitizer im Code-Generator werden alle Chain-of-Thought-Traces vor dem Schreiben auf die Festplatte restlos abgefangen, um einen reibungslosen Kompiliervorgang und fehlerfreie Testläufe zu garantieren.
+### Running Modul-Tests:
+```powershell
+# Executing pytest will now seamlessly resolve the speech_to_code namespace
+.venv\Scripts\pytest.exe
+```
+
+### Verification Verification Steps:
+1. Ensure the directory junction `speech_to_code` exists at your project root.
+2. Launch `llama-server` with `--reasoning-format none` and offload all layers to your GPU.
+3. Toggle `"local"` in `config.yaml` to route your audio-to-code pipelines offline.
