@@ -13,7 +13,18 @@ Dieses Dokument hält die Strategie und Architektur-Entscheidungen für die Migr
 
 ## 2. Ausführung OHNE Ollama (Direkter Download & alternative Runner)
 
-Es ist **nicht** zwingend erforderlich, Ollama zu nutzen. Qwen 3.6 (in den Open-Weights-Varianten wie `Qwen3.6-27B` oder `Qwen3.6-35B-A3B`) kann direkt heruntergeladen und über folgende Wege ausgeführt werden:
+Es ist **nicht** zwingend erforderlich, Ollama zu nutzen. Qwen 3.6 (in den Open-Weights-Varianten wie `Qwen3.6-27B` oder `Qwen3.6-35B-A3B`) kann direkt bezogen und über verschiedene Wege ausgeführt werden:
+
+### Download-Quellen & Bezugsdaten
+- **Hugging Face (Standard-Quelle):** Die primäre Plattform für Open-Source LLMs. 
+  - *Suchbegriffe:* Suche auf [huggingface.co](https://huggingface.co/) nach `Qwen/Qwen3.6-27B-Instruct-GGUF` (offizielle Versionen) oder Community-Builds von Erstellern wie `Bartowski` (z. B. `Bartowski/Qwen3.6-27B-Instruct-GGUF`).
+  - *Auswahl:* Unter *Files and versions* die `.gguf`-Datei herunterladen (Empfehlung: `Q4_K_M` oder `Q5_K_M` für das beste Verhältnis von Qualität zu VRAM).
+- **LM Studio In-App-Suche (Einfachste Methode):** 
+  - Direkt im Suchfeld in LM Studio nach `Qwen 3.6` suchen. Das Tool listet die passenden GGUF-Modelle von Hugging Face auf und lädt sie per Ein-Klick-Download direkt in das richtige Verzeichnis.
+- **ModelScope (Alternative):** 
+  - Alibabas eigene Open-Source-Plattform. Dient als Ausweich-Mirror, falls Hugging Face eine eingeschränkte Bandbreite aufweist.
+
+---
 
 ### A. LM Studio (Die einfachste Desktop-Alternative)
 1. **Suche & Download:** In LM Studio nach `Qwen 3.6 GGUF` suchen.
