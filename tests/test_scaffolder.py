@@ -1,70 +1,34 @@
 import os
-import tempfile
-import shutil
-import pytest
-from speech_to_code.core.scaffolder import ProjectScaffolder
-from speech_to_code.models.requirements import RequirementsModel, FilePlaceholder
-from speech_to_code.models.project import ProjectFileModel
 
-@pytest.fixture
-def temp_dir():
-    # Setup temporary directory for testing filesystem operations
-    test_dir = tempfile.mkdtemp()
-    yield test_dir
-    # Cleanup after test finishes
-    shutil.rmtree(test_dir, ignore_errors=True)
+from amadeus.core.scaffolder import CANONICAL_DIRECTORIES, ProjectScaffolder
+from amadeus.models.project import ProjectFileModel
+from amadeus.models.requirements import RequirementsModel
 
-def test_project_scaffolding(temp_dir):
-    # 1. Arrange mock requirements
+
+def test_project_scaffolding_creates_handoff_workspace(tmp_path):
     reqs = RequirementsModel(
         project_name="test-scaffold-project",
         display_name="Test Scaffold Project",
-        short_description="A dummy test project for scaffolding verification.",
-        project_type="Python CLI Tool",
-        tech_stack=["Python"],
-        dependencies=["pytest"],
-        specifications=["Should do nothing"],
-        quality_criteria=["Clean code"],
-        files_to_create=[
-            FilePlaceholder(file_path="main.py", purpose="Entry point"),
-            FilePlaceholder(file_path="core/utils.py", purpose="Helpers")
-        ]
+        short_description="A dummy handoff workspace.",
+        project_type="AI handoff workspace",
+        tech_stack=[],
+        dependencies=[],
+        specifications=["Should create handoff files"],
+        quality_criteria=["Clean structure"],
+        files_to_create=[],
     )
-
-    # 2. Arrange mock generated files list
     generated_files = [
-        ProjectFileModel(
-            file_path="main.py",
-            content="print('Hello Test Scaffold')",
-            purpose="Entry point"
-        ),
-        ProjectFileModel(
-            file_path="core/utils.py",
-            content="def helper(): return True",
-            purpose="Helpers"
-        )
+        ProjectFileModel(file_path="MASTER_PROMPT.md", content="# Prompt", purpose="Prompt"),
+        ProjectFileModel(file_path="CLAUDE.md", content="# Brain", purpose="Claude brain"),
+        ProjectFileModel(file_path="../escape.txt", content="bad", purpose="Traversal attempt"),
     ]
 
-    # 3. Act
-    scaffolder = ProjectScaffolder(base_output_dir=temp_dir)
-    project_path = scaffolder.scaffold(reqs, generated_files)
+    project_path = ProjectScaffolder(base_output_dir=str(tmp_path)).scaffold(reqs, generated_files)
 
-    # 4. Assert
     assert project_path is not None
-    assert os.path.exists(project_path)
-    
-    # Check expected project directory root structure
     assert os.path.basename(project_path) == "test-scaffold-project"
-    
-    # Check generated files on disk
-    main_file_path = os.path.join(project_path, "main.py")
-    utils_file_path = os.path.join(project_path, "core", "utils.py")
-    
-    assert os.path.exists(main_file_path)
-    assert os.path.exists(utils_file_path)
-    
-    with open(main_file_path, "r", encoding="utf-8") as f:
-        assert f.read() == "print('Hello Test Scaffold')"
-        
-    with open(utils_file_path, "r", encoding="utf-8") as f:
-        assert f.read() == "def helper(): return True"
+    assert os.path.exists(os.path.join(project_path, "MASTER_PROMPT.md"))
+    assert os.path.exists(os.path.join(project_path, "CLAUDE.md"))
+    assert not os.path.exists(os.path.join(tmp_path, "escape.txt"))
+    for directory in CANONICAL_DIRECTORIES:
+        assert os.path.isdir(os.path.join(project_path, directory))

@@ -35,7 +35,8 @@ Legacy-only concepts:
 
 ## 3. Current Project State
 
-Documentation has been consolidated around the new Amadeus architecture.
+Documentation has been consolidated around the new Amadeus architecture, and the
+first local Gemma/Ollama runtime milestone is implemented.
 
 Canonical product direction exists in:
 
@@ -45,9 +46,19 @@ Canonical product direction exists in:
 4. [IMPLEMENTATION_ROADMAP.md](IMPLEMENTATION_ROADMAP.md)
 5. [PROJECT_STATUS.md](PROJECT_STATUS.md)
 
+Implemented current state:
+
+- The package imports use `amadeus.*`.
+- `python -m amadeus check-runtime` verifies Ollama, `gemma4:e4b`, and `amadeus`.
+- `python -m amadeus build-text --text "..."` creates a starter handoff workspace.
+- The generator creates handoff workspace files instead of production app code.
+- The transcriber defaults to local `faster-whisper`.
+
 Important current limitation:
 
-The Python prototype still reflects older `speech_to_code`, Claude/Gemini/OpenAI, and code-generation assumptions. Treat code/config as legacy implementation until the roadmap explicitly refactors it. Do not "fix" config or dependencies during documentation work unless the user asks for implementation changes.
+Telegram ingestion, project state storage, full gap analysis, material conversion,
+and interactive readiness gates are still pending. Treat those as active roadmap
+work, not completed product behavior.
 
 ## 4. Canonical Reading Order
 
@@ -102,13 +113,15 @@ Supporting documentation:
 
 Runtime implementation:
 
-- `main.py`: current prototype application entrypoint; still legacy-oriented.
+- `__main__.py`: CLI entrypoint for runtime checks and text-to-workspace smoke runs.
+- `main.py`: desktop app entrypoint wired to the Amadeus pipeline.
+- `Modelfile`: Ollama identity layer for the local Amadeus model.
 - `core/`: recorder, transcriber, analyzer, validator, generator, scaffolder modules.
-- `models/`: Pydantic models for the current prototype.
-- `templates/`: current runtime Jinja templates; not yet aligned with the new target workspace contract.
-- `tests/`: prototype tests for the current implementation.
-- `config.yaml`: current runtime config; known mismatch with target architecture.
-- `requirements.txt`: current dependencies; includes legacy cloud-provider packages.
+- `models/`: Pydantic models for handoff workspace planning.
+- `templates/`: legacy prototype templates; generated workspaces use `docs/templates/`.
+- `tests/`: Amadeus tests for the current implementation.
+- `config.yaml`: current runtime config for Ollama/Gemma and local `faster-whisper`.
+- `requirements.txt`: current dependencies for the local core path.
 
 ## 6. Architecture Decisions
 
@@ -140,7 +153,7 @@ Before editing code:
 
 1. Read `PROJECT_STATUS.md` and `IMPLEMENTATION_ROADMAP.md`.
 2. Identify whether the change belongs to the documentation cleanup or an implementation phase.
-3. Do not update `config.yaml` or `requirements.txt` opportunistically.
+3. Update `config.yaml` or `requirements.txt` only when the implementation change requires it.
 4. Keep code changes aligned with the target architecture: Ollama/Gemma, faster-whisper, state store, prompt compiler, gap analysis, workspace builder.
 5. Add or update tests when behavior changes.
 

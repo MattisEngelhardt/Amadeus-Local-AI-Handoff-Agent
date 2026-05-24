@@ -1,65 +1,30 @@
-from unittest.mock import MagicMock, patch
-from speech_to_code.core.validator import RequirementsValidator
-from speech_to_code.models.requirements import RequirementsModel, FilePlaceholder
+from amadeus.core.validator import CANONICAL_HANDOFF_FILES, RequirementsValidator
+from amadeus.models.requirements import RequirementsModel
 
-@patch('speech_to_code.core.validator.Anthropic')
-def test_requirements_validation(mock_anthropic):
-    # 1. Arrange mock client and Claude response structure
-    mock_client = MagicMock()
-    mock_anthropic.return_value = mock_client
-    
-    # Create mock tool use block representing a corrected requirements output
-    mock_tool_use = MagicMock()
-    mock_tool_use.type = "tool_use"
-    mock_tool_use.name = "save_requirements"
-    mock_tool_use.input = {
-        "project_name": "test-project-corrected",
-        "display_name": "Test Project Corrected",
-        "short_description": "Corrected description of the application.",
-        "project_type": "Python CLI Tool",
-        "tech_stack": ["Python"],
-        "dependencies": ["pytest"],
-        "specifications": ["Core specification is now corrected"],
-        "quality_criteria": ["Clean structure"],
-        "files_to_create": [
-            {"file_path": "main.py", "purpose": "Corrected entrypoint purpose"}
-        ]
-    }
-    
-    mock_response = MagicMock()
-    mock_response.content = [mock_tool_use]
-    mock_client.messages.create.return_value = mock_response
-    
+
+def test_requirements_validation_enforces_handoff_contract():
     initial_reqs = RequirementsModel(
-        project_name="test-project",
+        project_name="Test Project!!",
         display_name="Test Project",
-        short_description="Initial description.",
+        short_description="Prepare a handoff workspace.",
         project_type="Python CLI Tool",
         tech_stack=["Python"],
-        dependencies=["pytest"],
-        specifications=["Original specification"],
-        quality_criteria=["Clean structure"],
-        files_to_create=[
-            FilePlaceholder(file_path="main.py", purpose="Original entrypoint purpose")
-        ]
+        dependencies=["openai", "anthropic"],
+        specifications=[],
+        quality_criteria=[],
+        files_to_create=[],
     )
 
-    # 2. Act
-    validator = RequirementsValidator(api_key="dummy_api_key_value")
-    result = validator.validate(
-        original_transcript="My transcript text...",
+    result = RequirementsValidator().validate(
+        original_transcript="Raw user input",
         requirements=initial_reqs,
-        max_iterations=1
     )
 
-    # 3. Assert
-    assert result is not None
-    assert isinstance(result, RequirementsModel)
-    assert result.project_name == "test-project-corrected"
-    assert result.display_name == "Test Project Corrected"
-    assert result.short_description == "Corrected description of the application."
-    assert result.specifications[0] == "Core specification is now corrected"
-    assert result.files_to_create[0].purpose == "Corrected entrypoint purpose"
-    
-    # Verify Claude API was called
-    mock_client.messages.create.assert_called_once()
+    assert result.project_name == "test-project"
+    assert result.project_type == "AI handoff workspace"
+    assert result.dependencies == []
+    generated_paths = {file.file_path for file in result.files_to_create}
+    for file_path, _purpose in CANONICAL_HANDOFF_FILES:
+        assert file_path in generated_paths
+    assert any("raw input" in item.lower() for item in result.specifications)
+    assert any("do not invent" in item.lower() for item in result.quality_criteria)

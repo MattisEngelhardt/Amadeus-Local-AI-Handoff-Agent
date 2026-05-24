@@ -39,19 +39,25 @@ Use `DOCUMENTATION_INDEX.md` to understand each file's role.
 - `docs/research/`: archived background research only.
 - `docs/templates/`: target handoff templates, not current runtime code.
 - `dev_journey/`: Amadeus project history, fallback snapshots, changelog, and restore guide.
-- `templates/`: current prototype Jinja templates; legacy until implementation refactor.
-- `core/`, `models/`, `ui/`, `main.py`: current prototype code.
-- `tests/`: current prototype tests.
+- `templates/`: legacy prototype templates; do not use for generated handoff workspaces.
+- `core/`, `models/`, `ui/`, `main.py`, `__main__.py`: current Amadeus implementation.
+- `tests/`: Amadeus tests for the current implementation.
 
 ## Expected Commands
 
-From `amadeus/`, the intended test command is:
+From the repository root:
 
 ```powershell
-python -m pytest tests
+.\.venv\Scripts\python.exe -m amadeus check-runtime
+.\.venv\Scripts\python.exe -m pytest amadeus/tests -q
+.\.venv\Scripts\python.exe -m ruff check amadeus .github pyproject.toml
 ```
 
-Current caveat: the prototype imports `speech_to_code.*` while the folder is named `amadeus`. Tests may require a package rename, editable install, or local junction before they run cleanly. Do not hide that mismatch; document it in `PROJECT_STATUS.md` until fixed.
+Current runtime target:
+
+- `gemma4:e4b` is the pulled base model.
+- `amadeus` / `amadeus:latest` is the working Ollama model created from `Modelfile`.
+- `amadeus:local` may appear in `ollama list`, but do not use it unless re-verified.
 
 Use search-first inspection:
 
@@ -73,12 +79,12 @@ rg --files
 
 1. Ollama/Gemma identity harness.
 2. Local transcription path with `faster-whisper`.
-3. Project state store.
-4. Prompt compiler.
-5. Gap analysis and readiness gate.
-6. Document ingestion and source mapping.
-7. Workspace builder for the target handoff contract.
-8. `CLAUDE.md` and `AGENTS.md` generation.
+3. Commit and push major working milestones to GitHub for fallback.
+4. Project state store.
+5. Prompt compiler.
+6. Gap analysis and readiness gate.
+7. Document ingestion and source mapping.
+8. Workspace builder expansion for the target handoff contract.
 9. Validators and eval suite.
 
 ## Definition Of Done

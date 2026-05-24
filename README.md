@@ -73,9 +73,38 @@ Canonical blueprints:
 
 ## Current Implementation Note
 
-The existing Python prototype still contains older `speech_to_code`, Claude/Gemini/OpenAI, and code-generation assumptions. Those files are preserved as implementation material, but they are not the final target architecture.
+The implementation now has a working local Gemma/Ollama core path.
 
-Do not treat `config.yaml`, `requirements.txt`, or the current generator as canonical until the implementation roadmap refactors them.
+Verified locally:
+
+- Ollama `0.24.0` installed.
+- `gemma4:e4b` pulled locally.
+- `amadeus` created from `Modelfile`.
+- `faster-whisper-large-v3` preloaded locally.
+- `python -m amadeus check-runtime` returns a successful local model response.
+- `python -m amadeus build-text ...` creates a handoff workspace.
+
+Current gaps remain: Telegram ingestion, project state storage, full gap-analysis schema,
+material conversion, and interactive readiness gates.
+
+## Local Runtime Commands
+
+From the repository root:
+
+```powershell
+.\.venv\Scripts\python.exe -m amadeus check-runtime
+.\.venv\Scripts\python.exe -m amadeus build-text --output-dir C:\tmp\amadeus-smoke --project-name amadeus-smoke-handoff --text "Describe the handoff workspace you want."
+.\.venv\Scripts\python.exe -m pytest amadeus/tests -q
+```
+
+If setup is needed on a fresh machine:
+
+```powershell
+winget install --id Ollama.Ollama -e --source winget
+ollama pull gemma4:e4b
+ollama create amadeus -f amadeus/Modelfile
+.\.venv\Scripts\python.exe -m pip install -r amadeus/requirements.txt
+```
 
 ## Legacy Research
 

@@ -1,53 +1,51 @@
-import os
-import logging
-from openai import OpenAI
-from dotenv import load_dotenv
+from __future__ import annotations
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+import logging
+import os
+
 logger = logging.getLogger(__name__)
 
+
 class AudioTranscriber:
-    def __init__(self, api_key=None, model="whisper-1", whisper_mode="api", whisper_local_model="base"):
-        """
-        Initialize the Audio Transcriber.
-        :param api_key: Optional OpenAI API key.
-        :param model: Whisper API model identifier.
-        :param whisper_mode: "api" or "local".
-        :param whisper_local_model: Size of local model ("tiny", "base", etc.).
-        """
-        load_dotenv()
-        
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
-        self.model = model
+    def __init__(
+        self,
+        model: str | None = None,
+        whisper_mode: str = "local",
+        whisper_local_model: str = "large-v3",
+        language: str = "de",
+        **_legacy_kwargs: object,
+    ) -> None:
+        self.model = model or "faster-whisper"
         self.whisper_mode = whisper_mode
-        self.whisper_local_model = whisper_local_model or "base"
+        self.whisper_local_model = whisper_local_model or "large-v3"
+        self.language = language
         self._local_model = None
-        self.client = None
 
-        if self.whisper_mode == "api":
-            if not self.api_key:
-                logger.warning("OpenAI API key not found. Transcribing will fail in API mode unless key is provided.")
-            else:
-                self.client = OpenAI(api_key=self.api_key)
+        if self.whisper_mode != "local":
+            logger.warning(
+                "Amadeus only supports local transcription in the core path. Using local mode."
+            )
+            self.whisper_mode = "local"
 
-    def _transcribe_local(self, file_path):
-        """Transcribes audio locally using faster-whisper without API calls."""
+    def _transcribe_local(self, file_path: str) -> str | None:
         try:
             if not self._local_model:
-                logger.info(f"Loading local Whisper model '{self.whisper_local_model}' (first run may download files)...")
+                logger.info(
+                    "Loading local faster-whisper model '%s'. First run may download model files.",
+                    self.whisper_local_model,
+                )
                 from faster_whisper import WhisperModel
-                # Runs on CPU with int8 quantization for portability and speed
-                self._local_model = WhisperModel(self.whisper_local_model, device="cpu", compute_type="int8")
 
-            logger.info(f"Transcribing audio file locally: {file_path}")
-            
-            import scipy.io.wavfile as wav
+                self._local_model = WhisperModel(
+                    self.whisper_local_model,
+                    device="cpu",
+                    compute_type="int8",
+                )
+
             import numpy as np
+            import scipy.io.wavfile as wav
 
             samplerate, data = wav.read(file_path)
-
-            # Ensure mono 1D float32 normalized data
             if len(data.shape) > 1:
                 data = np.mean(data, axis=1)
 
@@ -61,54 +59,20 @@ class AudioTranscriber:
                 data = data.astype(np.float32)
 
             if samplerate != 16000:
-                logger.warning(f"Audio samplerate is {samplerate}Hz but Whisper expects 16000Hz.")
+                logger.warning("Audio samplerate is %sHz; 16000Hz is preferred.", samplerate)
 
-            segments, info = self._local_model.transcribe(data, beam_size=5)
-            transcript_text = " ".join([segment.text for segment in segments]).strip()
-            logger.info("Local transcription completed successfully.")
-            return transcript_text
-
-        except Exception as e:
-            logger.error(f"Error during local Whisper transcription: {e}")
-            if self.api_key:
-                logger.warning("Local transcription failed. Falling back to OpenAI API...")
-                self.whisper_mode = "api"
-                return self.transcribe(file_path)
+            segments, _info = self._local_model.transcribe(
+                data,
+                beam_size=5,
+                language=self.language,
+            )
+            return " ".join(segment.text for segment in segments).strip()
+        except Exception as exc:
+            logger.error("Local faster-whisper transcription failed: %s", exc)
             return None
 
-    def transcribe(self, file_path):
-        """
-        Transcribes the given audio file using OpenAI's Whisper (API or local).
-        :param file_path: Path to the audio file.
-        :return: Transcribed text string, or None if transcription failed.
-        """
+    def transcribe(self, file_path: str) -> str | None:
         if not os.path.exists(file_path):
-            logger.error(f"Audio file not found: {file_path}")
+            logger.error("Audio file not found: %s", file_path)
             return None
-
-        if self.whisper_mode == "local":
-            return self._transcribe_local(file_path)
-
-        # Re-initialize client if api_key was provided later or loaded
-        if not self.client:
-            self.api_key = self.api_key or os.getenv("OPENAI_API_KEY")
-            if not self.api_key:
-                logger.error("Cannot transcribe: OpenAI API key is missing. Please set OPENAI_API_KEY.")
-                return None
-            self.client = OpenAI(api_key=self.api_key)
-
-        logger.info(f"Sending {file_path} to OpenAI Whisper API...")
-        try:
-            with open(file_path, "rb") as audio_file:
-                response = self.client.audio.transcriptions.create(
-                    model=self.model,
-                    file=audio_file
-                )
-            
-            transcript_text = response.text.strip()
-            logger.info("Transcription completed successfully.")
-            return transcript_text
-
-        except Exception as e:
-            logger.error(f"Error during OpenAI Whisper API call: {e}")
-            return None
+        return self._transcribe_local(file_path)

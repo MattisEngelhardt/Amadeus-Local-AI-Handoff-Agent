@@ -2,6 +2,36 @@
 
 This changelog records meaningful project-level changes. It complements `PROJECT_STATUS.md` and the immutable-ish snapshots under `dev_journey/snapshots/`.
 
+## 2026-05-24 - Local Gemma Runtime Milestone
+
+Changed:
+
+- Installed and verified Ollama locally.
+- Pulled `gemma4:e4b`.
+- Added `amadeus/Modelfile`.
+- Created the working local Ollama model `amadeus` / `amadeus:latest`.
+- Added a stdlib Ollama client and CLI entrypoint under `python -m amadeus`.
+- Refactored imports from `speech_to_code.*` to `amadeus.*`.
+- Replaced cloud LLM analysis with local Ollama/Gemma analysis.
+- Replaced production code generation with handoff workspace generation.
+- Made local `faster-whisper` the default transcription path.
+- Preloaded `faster-whisper-large-v3` into the local Hugging Face cache.
+- Updated tests, config, requirements, and GitHub Actions for the Amadeus path.
+
+Verified:
+
+- `python -m amadeus check-runtime`
+- `python -m pytest amadeus/tests study_agent/tests -q`
+- `python -m ruff check amadeus .github pyproject.toml`
+- `python -m amadeus build-text ...`
+
+Notes:
+
+- The reliable local model name is `amadeus`, which appears in Ollama as
+  `amadeus:latest`.
+- `amadeus:local` appeared in `ollama list` but did not generate reliably on
+  this machine, so runtime config uses `amadeus`.
+
 ## 2026-05-24 - Documentation Cleanup And Project Brain
 
 Changed:

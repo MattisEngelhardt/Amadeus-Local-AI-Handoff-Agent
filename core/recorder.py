@@ -1,11 +1,12 @@
+import logging
 import os
 import queue
 import threading
 import time
-import logging
+
 import numpy as np
-import sounddevice as sd
 import scipy.io.wavfile as wav
+import sounddevice as sd
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -49,7 +50,7 @@ class AudioRecorder:
         self.audio_queue = queue.Queue()
         self.start_time = time.time()
         self.elapsed_time = 0.0
-        
+
         self.thread = threading.Thread(target=self._record_loop, daemon=True)
         self.thread.start()
         logger.info(f"Started recording, saving to {filename}")
@@ -59,8 +60,8 @@ class AudioRecorder:
         """Internal recording loop running in background thread."""
         try:
             with sd.InputStream(
-                samplerate=self.samplerate, 
-                channels=self.channels, 
+                samplerate=self.samplerate,
+                channels=self.channels,
                 callback=self._callback,
                 dtype='int16' # Use 16-bit PCM for clean WAV output
             ):
@@ -86,7 +87,7 @@ class AudioRecorder:
         self.recording = False
         if self.thread:
             self.thread.join()
-        
+
         logger.info("Recording stopped. Processing audio data...")
 
         # Collect all audio chunks from queue

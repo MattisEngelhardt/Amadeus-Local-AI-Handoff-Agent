@@ -1,26 +1,22 @@
 import logging
+
 from plyer import notification
 
 logger = logging.getLogger(__name__)
 
-def notify_user(title, message, app_name="Speech to Code"):
-    """
-    Triggers a native desktop toast notification.
-    :param title: Notification title.
-    :param message: Notification body message.
-    :param app_name: Application name displaying in notification.
-    """
-    logger.info(f"Notification: {title} - {message}")
+
+def notify_user(title: str, message: str, app_name: str = "Amadeus") -> None:
+    logger.info("Notification: %s - %s", title, message)
     try:
         notification.notify(
             title=title,
             message=message,
             app_name=app_name,
-            timeout=5  # Display duration in seconds
+            timeout=5,
         )
-    except Exception as e:
-        logger.error(f"Failed to trigger desktop notification: {e}")
+    except Exception as exc:
+        logger.error("Failed to trigger desktop notification: %s", exc)
 
-# Quick local test runner
+
 if __name__ == "__main__":
-    notify_user("Test Title", "This is a test notification from Speech to Code.")
+    notify_user("Test Title", "This is a test notification from Amadeus.")

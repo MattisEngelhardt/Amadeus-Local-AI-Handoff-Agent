@@ -1,31 +1,25 @@
-# Speech to Code Default Configuration
+# Amadeus local configuration
 
-# The hotkey to start and stop recording (e.g. "ctrl+space" or "ctrl+shift+a").
 hotkey: "ctrl+space"
-
-# Directory where generated projects will be scaffolded.
-# Can be a relative path or an absolute path (e.g. "C:/Users/engel/OneDrive/Projects").
 output_dir: "./output"
 
-# API Model Settings
 models:
-  llm_provider: "gemini"             # "gemini" or "claude" or "openai"
-  whisper: "whisper-1"
-  claude: "claude-3-5-sonnet-20241022"
-  gemini: "gemini-1.5-pro"
-  whisper_mode: "local"              # "local" for offline free transcription, "api" for OpenAI API key
-  whisper_local_model: "base"         # "tiny", "base", "small", "medium"
+  llm_provider: "ollama"
+  ollama_base_url: "http://localhost:11434"
+  base_model: "gemma4:e4b"
+  ollama_model: "amadeus"
+  whisper_mode: "local"
+  whisper_local_model: "large-v3"
+  transcription_language: "de"
 
-# Audio Recording Settings
 audio:
-  samplerate: 16000  # 16kHz is ideal for Whisper API
-  channels: 1        # Mono recording
+  samplerate: 16000
+  channels: 1
   temp_filename: "temp_recording.wav"
 
-# Quality Criteria & Development Style Prefs
 quality_criteria:
-  - "Strict Python type hints (PEP 484) on all functions"
-  - "Includes README.md with setup instructions"
-  - "Includes CLAUDE.md with commands, build steps, and structure"
-  - "Proper error handling and logging (not raw print statements)"
-  - "Clean separation of core logic from presentation/CLI/API layers"
+  - "Preserve raw user input separately from cleaned text and compiled prompts"
+  - "Keep generated workspace file and folder names in English"
+  - "Do not invent missing sources, constraints, or user intent"
+  - "Block or document assumptions when context is incomplete"
+  - "Generate CLAUDE.md and AGENTS.md as the primary handoff instructions"

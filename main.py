@@ -1,313 +1,285 @@
+from __future__ import annotations
+
+import logging
 import os
 import sys
-import time
-import logging
 import threading
+import time
+from typing import Any
+
 import yaml
 from dotenv import load_dotenv
 from pynput import keyboard
 
-# Import application modules
-from speech_to_code.core.recorder import AudioRecorder
-from speech_to_code.core.transcriber import AudioTranscriber
-from speech_to_code.core.analyzer import TranscriptAnalyzer
-from speech_to_code.core.validator import RequirementsValidator
-from speech_to_code.core.generator import ProjectGenerator
-from speech_to_code.core.scaffolder import ProjectScaffolder
-from speech_to_code.ui.overlay import OverlayWindow
-from speech_to_code.ui.tray import SystemTrayApp
-from speech_to_code.ui.notification import notify_user
+from amadeus.core.analyzer import TranscriptAnalyzer
+from amadeus.core.generator import ProjectGenerator
+from amadeus.core.ollama_client import OllamaClient
+from amadeus.core.recorder import AudioRecorder
+from amadeus.core.scaffolder import ProjectScaffolder
+from amadeus.core.transcriber import AudioTranscriber
+from amadeus.core.validator import RequirementsValidator
+from amadeus.ui.notification import notify_user
+from amadeus.ui.overlay import OverlayWindow
+from amadeus.ui.tray import SystemTrayApp
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler("speech_to_code.log", encoding="utf-8")
-    ]
+        logging.FileHandler("amadeus.log", encoding="utf-8"),
+    ],
 )
 logger = logging.getLogger(__name__)
 
-class SpeechToCodeApp:
-    def __init__(self):
+
+class AmadeusApp:
+    def __init__(self) -> None:
         load_dotenv()
         self.config = self._load_config()
 
-        # Resolve output directory
-        self.output_dir = self.config.get("output_dir", "./output")
-        if not os.path.isabs(self.output_dir):
-            self.output_dir = os.path.abspath(self.output_dir)
+        self.output_dir = self._absolute_path(self.config.get("output_dir", "./output"))
 
-        # Audio settings
         audio_config = self.config.get("audio", {})
-        self.samplerate = audio_config.get("samplerate", 16000)
-        self.channels = audio_config.get("channels", 1)
-        self.temp_filename = audio_config.get("temp_filename", "temp_recording.wav")
-        self.temp_filepath = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", self.temp_filename))
+        self.samplerate = int(audio_config.get("samplerate", 16000))
+        self.channels = int(audio_config.get("channels", 1))
+        self.temp_filename = str(audio_config.get("temp_filename", "temp_recording.wav"))
+        self.temp_filepath = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), self.temp_filename)
+        )
 
-        # Model settings
         model_config = self.config.get("models", {})
-        self.whisper_model = model_config.get("whisper", "whisper-1")
-        self.claude_model = model_config.get("claude", "claude-3-5-sonnet-20241022")
-        self.gemini_model = model_config.get("gemini", "gemini-1.5-pro")
-        self.llm_provider = model_config.get("llm_provider", "claude")
-        self.whisper_mode = model_config.get("whisper_mode", "api")
-        self.whisper_local_model = model_config.get("whisper_local_model", "base")
+        self.ollama_base_url = str(model_config.get("ollama_base_url", "http://localhost:11434"))
+        self.llm_model = str(model_config.get("ollama_model", "amadeus"))
+        self.base_model = str(model_config.get("base_model", "gemma4:e4b"))
+        self.whisper_local_model = str(model_config.get("whisper_local_model", "large-v3"))
+        self.transcription_language = str(model_config.get("transcription_language", "de"))
 
-        if self.llm_provider == "gemini":
-            self.llm_model = self.gemini_model
-        else:
-            self.llm_model = self.claude_model
+        config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "config.yaml"))
+        ollama_client = OllamaClient(base_url=self.ollama_base_url)
 
-        # Initialize core elements
         self.recorder = AudioRecorder(samplerate=self.samplerate, channels=self.channels)
         self.transcriber = AudioTranscriber(
-            model=self.whisper_model,
-            whisper_mode=self.whisper_mode,
-            whisper_local_model=self.whisper_local_model
+            whisper_local_model=self.whisper_local_model,
+            language=self.transcription_language,
         )
-        
-        config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "config.yaml"))
-        self.analyzer = TranscriptAnalyzer(model=self.llm_model, config_path=config_path, llm_provider=self.llm_provider)
-        self.validator = RequirementsValidator(model=self.llm_model, llm_provider=self.llm_provider)
-        self.generator = ProjectGenerator(model=self.llm_model, llm_provider=self.llm_provider)
+        self.analyzer = TranscriptAnalyzer(
+            model=self.llm_model,
+            config_path=config_path,
+            ollama_base_url=self.ollama_base_url,
+            client=ollama_client,
+        )
+        self.validator = RequirementsValidator()
+        self.generator = ProjectGenerator()
         self.scaffolder = ProjectScaffolder(base_output_dir=self.output_dir)
 
-        # Initialize UI elements
         self.overlay = OverlayWindow()
         self.tray = SystemTrayApp(
             on_toggle_recording=self.toggle_recording,
             on_change_output=self.change_output_directory,
-            on_exit=self.exit_app
+            on_exit=self.exit_app,
         )
 
         self.is_processing = False
         self.running = True
-        self.hotkey_listener = None
+        self.hotkey_listener: keyboard.GlobalHotKeys | None = None
 
-    def _load_config(self):
-        """Loads configuration from config.yaml."""
+    def _load_config(self) -> dict[str, Any]:
         config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "config.yaml"))
         if not os.path.exists(config_path):
-            logger.warning(f"Config file not found at {config_path}. Using empty default config.")
+            logger.warning("Config file not found at %s. Using defaults.", config_path)
             return {}
         try:
-            with open(config_path, "r", encoding="utf-8") as f:
-                return yaml.safe_load(f) or {}
-        except Exception as e:
-            logger.error(f"Failed to load config: {e}")
+            with open(config_path, "r", encoding="utf-8") as handle:
+                return yaml.safe_load(handle) or {}
+        except Exception as exc:
+            logger.error("Failed to load config: %s", exc)
             return {}
 
-    def save_output_dir_to_config(self, new_dir):
-        """Saves a new output directory into the config.yaml."""
+    def _absolute_path(self, path: str) -> str:
+        if os.path.isabs(path):
+            return path
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), path))
+
+    def save_output_dir_to_config(self, new_dir: str) -> None:
         config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "config.yaml"))
         self.config["output_dir"] = new_dir
         try:
-            with open(config_path, "w", encoding="utf-8") as f:
-                yaml.safe_dump(self.config, f)
-            logger.info(f"Saved new output directory to config: {new_dir}")
-        except Exception as e:
-            logger.error(f"Failed to save output dir to config file: {e}")
+            with open(config_path, "w", encoding="utf-8") as handle:
+                yaml.safe_dump(self.config, handle, sort_keys=False)
+            logger.info("Saved new output directory to config: %s", new_dir)
+        except Exception as exc:
+            logger.error("Failed to save output directory to config: %s", exc)
 
-    def start(self):
-        """Starts all components of the application."""
-        # 1. Start overlay
+    def start(self) -> None:
         self.overlay.start()
-
-        # 2. Check API keys depending on configuration
-        missing_keys = []
-        if self.whisper_mode == "api" and not os.getenv("OPENAI_API_KEY"):
-            missing_keys.append("OPENAI_API_KEY (required for Cloud Whisper)")
-        
-        if self.llm_provider == "claude" and not os.getenv("ANTHROPIC_API_KEY"):
-            missing_keys.append("ANTHROPIC_API_KEY (required for Claude)")
-        elif self.llm_provider == "gemini" and not os.getenv("GEMINI_API_KEY"):
-            missing_keys.append("GEMINI_API_KEY (required for Google Gemini)")
-
-        if missing_keys:
-            msg = f"Missing API keys: {', '.join(missing_keys)}. Please define them in your .env file."
-            logger.error(msg)
-            notify_user("Speech to Code Error", "API Keys are missing in .env file.")
-            # Show overlay with error message
-            time.sleep(1) # wait for overlay thread to init
-            self.overlay.show()
-            self.overlay.update_status("❌ Error: API Keys Missing", "#FF3B30")
-            self.overlay.hide_delayed(10.0)
-
-        # 3. Start system tray
+        self._report_runtime_status()
         self.tray.run()
+        self._bind_hotkey()
 
-        # 4. Bind global hotkey
-        hotkey_combo = self.config.get("hotkey", "ctrl+space")
-        logger.info(f"Binding global hotkey: {hotkey_combo}")
-        
-        # pynput keyboard mapping helper
-        # pynput requires format like '<ctrl>+<space>' or '<ctrl_l>+<space>'
-        # Normalize the configuration string
-        pynput_combo = hotkey_combo.lower().replace("ctrl", "<ctrl>").replace("shift", "<shift>").replace("space", "<space>")
-        pynput_combo = pynput_combo.replace("++", "+") # catch duplicate formatting
-
-        try:
-            self.hotkey_listener = keyboard.GlobalHotKeys({
-                pynput_combo: self.toggle_recording
-            })
-            self.hotkey_listener.start()
-            logger.info("Global hotkey listener started.")
-        except Exception as e:
-            logger.error(f"Failed to start hotkey listener: {e}")
-
-        # Keep main thread alive
-        logger.info("Speech to Code is running. Press Ctrl+Space to record.")
+        logger.info("Amadeus is running. Press Ctrl+Space to record.")
         try:
             while self.running:
                 time.sleep(0.5)
         except KeyboardInterrupt:
-            logger.info("Keyboard interrupt received.")
             self.exit_app()
 
-    def toggle_recording(self):
-        """Action handler when hotkey is triggered."""
+    def _report_runtime_status(self) -> None:
+        try:
+            models = self.analyzer.client.list_models()
+        except Exception as exc:
+            logger.warning("Ollama is not reachable: %s", exc)
+            notify_user(
+                "Amadeus Runtime Missing",
+                "Install Ollama and run: ollama pull gemma4:e4b",
+            )
+            return
+
+        missing = [model for model in (self.base_model, self.llm_model) if model not in models]
+        if missing:
+            logger.warning("Missing local Ollama models: %s", ", ".join(missing))
+            notify_user(
+                "Amadeus Model Missing",
+                f"Missing: {', '.join(missing)}",
+            )
+        else:
+            logger.info("Ollama and required Amadeus models are available.")
+
+    def _bind_hotkey(self) -> None:
+        hotkey_combo = str(self.config.get("hotkey", "ctrl+space"))
+        pynput_combo = (
+            hotkey_combo.lower()
+            .replace("ctrl", "<ctrl>")
+            .replace("shift", "<shift>")
+            .replace("space", "<space>")
+            .replace("++", "+")
+        )
+
+        try:
+            self.hotkey_listener = keyboard.GlobalHotKeys({pynput_combo: self.toggle_recording})
+            self.hotkey_listener.start()
+            logger.info("Global hotkey listener started: %s", hotkey_combo)
+        except Exception as exc:
+            logger.error("Failed to start hotkey listener: %s", exc)
+
+    def toggle_recording(self) -> None:
         if self.is_processing:
-            logger.warning("Application is currently processing. Toggle recording request ignored.")
+            logger.warning("Amadeus is currently processing. Toggle ignored.")
             return
 
         if not self.recorder.recording:
-            # START RECORDING
             self.overlay.show()
-            self.overlay.update_status("🎙️ Starting recording...", "#FF453A")
+            self.overlay.update_status("Amadeus recording...", "#FF453A")
             success = self.recorder.start_recording(self.temp_filepath)
-            
             if success:
                 self.tray.set_recording_state(True)
-                # Launch thread to update duration in overlay
                 threading.Thread(target=self._update_overlay_timer, daemon=True).start()
-        else:
-            # STOP RECORDING & PROCESS
-            self.is_processing = True
-            self.tray.set_recording_state(False)
-            self.overlay.update_status("🛑 Stopping recording...", "#FF9500")
-            
-            # Stop recorder and get filename
-            audio_file = self.recorder.stop_recording()
-            
-            if not audio_file or not os.path.exists(audio_file):
-                logger.error("Recording failed or no audio data captured.")
-                self.overlay.update_status("❌ Error: No audio captured", "#FF3B30")
-                self.overlay.hide_delayed(3.0)
-                self.is_processing = False
-                return
+            return
 
-            # Start pipeline in worker thread to prevent locking the tray/GUI threads
-            threading.Thread(target=self._process_pipeline, args=(audio_file,), daemon=True).start()
+        self.is_processing = True
+        self.tray.set_recording_state(False)
+        self.overlay.update_status("Stopping recording...", "#FF9500")
+        audio_file = self.recorder.stop_recording()
 
-    def _update_overlay_timer(self):
-        """Periodically updates the overlay text with the current recording duration."""
+        if not audio_file or not os.path.exists(audio_file):
+            logger.error("Recording failed or no audio data captured.")
+            self.overlay.update_status("Error: no audio captured", "#FF3B30")
+            self.overlay.hide_delayed(3.0)
+            self.is_processing = False
+            return
+
+        threading.Thread(target=self._process_pipeline, args=(audio_file,), daemon=True).start()
+
+    def _update_overlay_timer(self) -> None:
         while self.recorder.recording:
             duration = self.recorder.get_duration()
             mins = int(duration // 60)
             secs = int(duration % 60)
-            status_text = f"🔴 Recording ({mins}:{secs:02d})"
-            self.overlay.update_status(status_text, "#FF453A")
+            self.overlay.update_status(f"Recording ({mins}:{secs:02d})", "#FF453A")
             time.sleep(0.5)
 
-    def _process_pipeline(self, audio_file):
-        """Background worker executing transcription, analysis, validation, and scaffolding."""
+    def _process_pipeline(self, audio_file: str) -> None:
         try:
-            # 1. Transcribe
-            self.overlay.update_status("☁️ Transcribing audio...", "#0A84FF")
+            self.overlay.update_status("Transcribing locally...", "#0A84FF")
             transcript = self.transcriber.transcribe(audio_file)
-            
             if not transcript:
                 logger.error("Transcription failed.")
-                self.overlay.update_status("❌ Error: Transcription failed", "#FF3B30")
+                self.overlay.update_status("Error: transcription failed", "#FF3B30")
                 self.overlay.hide_delayed(4.0)
                 return
 
-            logger.info(f"Transcript received: {transcript[:100]}...")
-
-            # 2. Analyze
-            self.overlay.update_status("🧠 Analyzing requirements...", "#5E5CE6")
+            self.overlay.update_status("Analyzing with local Gemma...", "#5E5CE6")
             requirements = self.analyzer.analyze(transcript)
             if not requirements:
-                logger.error("Analysis failed.")
-                self.overlay.update_status("❌ Error: Requirements analysis failed", "#FF3B30")
+                logger.error("Gemma analysis failed.")
+                self.overlay.update_status("Error: Gemma analysis failed", "#FF3B30")
                 self.overlay.hide_delayed(4.0)
                 return
 
-            # 3. Validate
-            self.overlay.update_status("⚖️ Auditing requirements...", "#FF9500")
+            self.overlay.update_status("Validating handoff plan...", "#FF9500")
             validated_requirements = self.validator.validate(transcript, requirements)
 
-            # 4. Generate
-            self.overlay.update_status("⚙️ Generating project code...", "#BF5AF2")
+            self.overlay.update_status("Building handoff workspace...", "#BF5AF2")
             generated_files = self.generator.generate_all_files(validated_requirements)
-            if not generated_files:
-                logger.error("Code generation failed.")
-                self.overlay.update_status("❌ Error: Code generation failed", "#FF3B30")
-                self.overlay.hide_delayed(4.0)
-                return
-
-            # 5. Scaffold
-            self.overlay.update_status("📂 Scaffolding files...", "#30D158")
-            # Refresh output directory path in case it changed in config
             self.scaffolder.base_output_dir = self.output_dir
             project_path = self.scaffolder.scaffold(validated_requirements, generated_files)
-            
+
             if project_path:
-                logger.info(f"Project created at: {project_path}")
-                self.overlay.update_status("✅ Project generated successfully!", "#30D158")
+                self._write_raw_input(project_path, transcript)
+                logger.info("Amadeus handoff workspace created at: %s", project_path)
+                self.overlay.update_status("Handoff workspace ready", "#30D158")
                 notify_user(
-                    "Speech to Code Success", 
-                    f"Scaffolded '{validated_requirements.display_name}' in {validated_requirements.project_name}/"
+                    "Amadeus Workspace Ready",
+                    f"Created '{validated_requirements.display_name}'",
                 )
-                
-                # Cleanup temp file
-                try:
-                    if os.path.exists(audio_file):
-                        os.remove(audio_file)
-                except Exception as e:
-                    logger.warning(f"Could not delete temp file: {e}")
+                self._delete_temp_file(audio_file)
             else:
-                logger.error("Scaffolding failed.")
-                self.overlay.update_status("❌ Error: Directory scaffolding failed", "#FF3B30")
+                logger.error("Workspace scaffolding failed.")
+                self.overlay.update_status("Error: workspace build failed", "#FF3B30")
 
             self.overlay.hide_delayed(4.0)
-
-        except Exception as e:
-            logger.error(f"Error in Speech to Code processing pipeline: {e}")
-            self.overlay.update_status(f"❌ Error: {str(e)[:30]}...", "#FF3B30")
+        except Exception as exc:
+            logger.error("Error in Amadeus processing pipeline: %s", exc)
+            self.overlay.update_status(f"Error: {str(exc)[:30]}", "#FF3B30")
             self.overlay.hide_delayed(4.0)
         finally:
             self.is_processing = False
 
-    def change_output_directory(self):
-        """Triggers the directory chooser dialog thread-safely."""
-        logger.info("Opening directory select dialog...")
-        
-        def _update_output_dir(selected_dir):
+    def _write_raw_input(self, project_path: str, transcript: str) -> None:
+        logs_dir = os.path.join(project_path, "_logs")
+        os.makedirs(logs_dir, exist_ok=True)
+        with open(os.path.join(logs_dir, "raw_input.md"), "w", encoding="utf-8") as handle:
+            handle.write(f"# Raw Input\n\n{transcript.strip()}\n")
+
+    def _delete_temp_file(self, audio_file: str) -> None:
+        try:
+            if os.path.exists(audio_file):
+                os.remove(audio_file)
+        except Exception as exc:
+            logger.warning("Could not delete temp file: %s", exc)
+
+    def change_output_directory(self) -> None:
+        logger.info("Opening directory select dialog.")
+
+        def _update_output_dir(selected_dir: str) -> None:
             if selected_dir:
                 self.output_dir = selected_dir
                 self.save_output_dir_to_config(selected_dir)
-                notify_user("Output Directory Updated", f"New projects will be saved to:\n{selected_dir}")
-                logger.info(f"Updated output directory to: {selected_dir}")
+                notify_user(
+                    "Amadeus Output Updated",
+                    f"New workspaces will be saved to:\n{selected_dir}",
+                )
 
         self.overlay.select_directory(_update_output_dir)
 
-    def exit_app(self):
-        """Stops listeners and exits cleanly."""
-        logger.info("Shutting down Speech to Code...")
+    def exit_app(self) -> None:
+        logger.info("Shutting down Amadeus.")
         self.running = False
-        
-        # Stop tray icon
+
         if self.tray:
             self.tray.stop()
-            
-        # Stop hotkey listener
         if self.hotkey_listener:
             self.hotkey_listener.stop()
-
-        # Close Tkinter overlay
         if self.overlay and self.overlay.root:
             try:
                 self.overlay.root.quit()
@@ -317,6 +289,10 @@ class SpeechToCodeApp:
 
         sys.exit(0)
 
+
+SpeechToCodeApp = AmadeusApp
+
+
 if __name__ == "__main__":
-    app = SpeechToCodeApp()
+    app = AmadeusApp()
     app.start()
