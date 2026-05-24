@@ -59,6 +59,8 @@ Acceptance:
 
 ## Phase 3: Project State Store
 
+Status: implemented as the first persistent state milestone on 2026-05-25.
+
 Goal: persist project continuity.
 
 Tasks:
@@ -69,9 +71,11 @@ Tasks:
 
 Acceptance:
 
-- State survives restart.
-- Every input and decision is traceable.
-- Build cannot start from an incomplete state without recorded user approval.
+- State survives restart through `_logs/amadeus_state.json`.
+- Raw text/audio inputs, transcript metadata, decisions, gaps, prompt versions,
+  workspace plan, phase, and readiness are represented in schema.
+- Build cannot start from an incomplete state without recorded user approval in
+  the shared workflow.
 
 ## Phase 4: Prompt Compiler
 
@@ -92,6 +96,8 @@ Acceptance:
 
 ## Phase 5: Gap Analysis
 
+Status: initial deterministic gap analysis and readiness scoring implemented on 2026-05-25.
+
 Goal: identify blockers before workspace build.
 
 Tasks:
@@ -103,9 +109,11 @@ Tasks:
 
 Acceptance:
 
-- Build is blocked when blockers exist.
-- User-approved assumptions are recorded.
-- Gap output is machine-validated.
+- Build is blocked when open blockers exist.
+- User-approved waivers are recorded as decisions and reflected in generated
+  handoff files.
+- Gap output is machine-validated through Pydantic and stored as
+  `_logs/gap_analysis.json`.
 
 ## Phase 6: Material Processing
 
@@ -125,6 +133,9 @@ Acceptance:
 - Broken conversions are reported.
 
 ## Phase 7: Workspace Builder
+
+Status: partially implemented. Workspace generation now consumes project state
+and readiness output, while material ingestion and version snapshots are still pending.
 
 Goal: build the final handoff workspace.
 

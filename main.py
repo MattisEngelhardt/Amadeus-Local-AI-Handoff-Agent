@@ -12,12 +12,11 @@ from dotenv import load_dotenv
 from pynput import keyboard
 
 from amadeus.core.analyzer import TranscriptAnalyzer
-from amadeus.core.generator import ProjectGenerator
 from amadeus.core.ollama_client import OllamaClient
 from amadeus.core.recorder import AudioRecorder
-from amadeus.core.scaffolder import ProjectScaffolder
 from amadeus.core.transcriber import AudioTranscriber
 from amadeus.core.validator import RequirementsValidator
+from amadeus.core.workflow import prepare_handoff_workspace
 from amadeus.ui.notification import notify_user
 from amadeus.ui.overlay import OverlayWindow
 from amadeus.ui.tray import SystemTrayApp
@@ -70,8 +69,6 @@ class AmadeusApp:
             client=ollama_client,
         )
         self.validator = RequirementsValidator()
-        self.generator = ProjectGenerator()
-        self.scaffolder = ProjectScaffolder(base_output_dir=self.output_dir)
 
         self.overlay = OverlayWindow()
         self.tray = SystemTrayApp(
@@ -219,14 +216,26 @@ class AmadeusApp:
             self.overlay.update_status("Validating handoff plan...", "#FF9500")
             validated_requirements = self.validator.validate(transcript, requirements)
 
-            self.overlay.update_status("Building handoff workspace...", "#BF5AF2")
-            generated_files = self.generator.generate_all_files(validated_requirements)
-            self.scaffolder.base_output_dir = self.output_dir
-            project_path = self.scaffolder.scaffold(validated_requirements, generated_files)
+            self.overlay.update_status("Running readiness gate...", "#FF9500")
+            result = prepare_handoff_workspace(
+                validated_requirements,
+                raw_text=transcript,
+                output_dir=self.output_dir,
+                channel="desktop_speechbar",
+                input_kind="audio",
+                transcript_language=self.transcription_language,
+            )
 
-            if project_path:
-                self._write_raw_input(project_path, transcript)
-                logger.info("Amadeus handoff workspace created at: %s", project_path)
+            if result.blocked:
+                logger.warning("Readiness gate blocked workspace build: %s", result.project_path)
+                self.overlay.update_status("Readiness review needed", "#FF9500")
+                notify_user(
+                    "Amadeus Readiness Review",
+                    f"Open blockers saved in:\n{result.project_path}",
+                )
+                self._delete_temp_file(audio_file)
+            elif result.built:
+                logger.info("Amadeus handoff workspace created at: %s", result.project_path)
                 self.overlay.update_status("Handoff workspace ready", "#30D158")
                 notify_user(
                     "Amadeus Workspace Ready",
@@ -234,7 +243,7 @@ class AmadeusApp:
                 )
                 self._delete_temp_file(audio_file)
             else:
-                logger.error("Workspace scaffolding failed.")
+                logger.error("Workspace scaffolding failed: %s", result.message)
                 self.overlay.update_status("Error: workspace build failed", "#FF3B30")
 
             self.overlay.hide_delayed(4.0)

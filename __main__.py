@@ -1,12 +1,10 @@
 import argparse
-import os
 import sys
 
 from amadeus.core.analyzer import TranscriptAnalyzer
-from amadeus.core.generator import ProjectGenerator
 from amadeus.core.ollama_client import OllamaClient, OllamaUnavailable
-from amadeus.core.scaffolder import ProjectScaffolder
 from amadeus.core.validator import RequirementsValidator
+from amadeus.core.workflow import prepare_handoff_workspace
 
 
 def _print_install_commands() -> None:
@@ -67,22 +65,32 @@ def build_text(args: argparse.Namespace) -> int:
 
     validator = RequirementsValidator()
     requirements = validator.validate(args.text, requirements)
-    generated_files = ProjectGenerator().generate_all_files(requirements)
-    project_path = ProjectScaffolder(base_output_dir=args.output_dir).scaffold(
+    result = prepare_handoff_workspace(
         requirements,
-        generated_files,
+        raw_text=args.text,
+        output_dir=args.output_dir,
+        approve_readiness=args.approve_readiness,
+        approval_note=args.approval_note,
+        channel="cli",
+        input_kind="text",
     )
 
-    if not project_path:
-        print("FAIL: Workspace scaffolding failed.")
+    if result.blocked:
+        print("BLOCKED: Readiness gate found open blockers.")
+        print(f"Readiness score: {result.state.readiness.score}/100")
+        for blocker in result.state.open_blockers():
+            print(f"- {blocker.title}: {blocker.question}")
+        print(f"Review package written: {result.project_path}")
+        print("Rerun with --approve-readiness and --approval-note to waive blockers.")
+        return 4
+
+    if not result.built:
+        print(f"FAIL: {result.message}")
         return 3
 
-    logs_dir = os.path.join(project_path, "_logs")
-    os.makedirs(logs_dir, exist_ok=True)
-    with open(os.path.join(logs_dir, "raw_input.md"), "w", encoding="utf-8") as handle:
-        handle.write(f"# Raw Input\n\n{args.text.strip()}\n")
-
-    print(f"OK: Handoff workspace created: {project_path}")
+    print(f"OK: Handoff workspace created: {result.project_path}")
+    print(f"Readiness score: {result.state.readiness.score}/100")
+    print(f"State saved: {result.state_path}")
     print("Start there by reading CLAUDE.md and AGENTS.md.")
     return 0
 
@@ -110,6 +118,16 @@ def main(argv: list[str] | None = None) -> int:
     build_parser.add_argument("--project-name", default="")
     build_parser.add_argument("--model", default="amadeus")
     build_parser.add_argument("--ollama-url", default="http://localhost:11434")
+    build_parser.add_argument(
+        "--approve-readiness",
+        action="store_true",
+        help="Allow build with documented readiness blockers waived.",
+    )
+    build_parser.add_argument(
+        "--approval-note",
+        default="",
+        help="Required rationale when waiving readiness blockers.",
+    )
     build_parser.set_defaults(func=build_text)
 
     args = parser.parse_args(argv)

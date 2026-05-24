@@ -64,5 +64,6 @@ Each snapshot must include:
 
 ## Current Snapshots
 
+- `snapshots/2026-05-25_state-readiness-gate/`: persistent project state, deterministic gap analysis, readiness gate, and first versioned GitHub fallback/release marker.
 - `snapshots/2026-05-24_local-gemma-runtime/`: first working local Ollama/Gemma runtime and handoff workspace smoke test.
 - `snapshots/2026-05-24_documentation-cleanup/`: first clean Amadeus documentation workspace after canonicalization around Gemma/Ollama/faster-whisper.

@@ -2,6 +2,42 @@
 
 This changelog records meaningful project-level changes. It complements `PROJECT_STATUS.md` and the immutable-ish snapshots under `dev_journey/snapshots/`.
 
+## 2026-05-25 - Project State And Readiness Gate
+
+Changed:
+
+- Added persistent project state schema with phase transitions, raw input
+  records, transcript metadata, materials, links, decisions, gaps, prompt
+  versions, workspace plan, and readiness snapshot.
+- Added deterministic gap analysis for thin goals, referenced-but-missing
+  materials, assumptions, optional improvements, targeted questions, and
+  readiness scoring.
+- Added readiness gate rendering and enforcement before workspace builds.
+- Added shared workflow orchestration used by CLI and desktop speechbar path.
+- Updated generated handoff files so `PROJECT_BRIEF.md`, `MASTER_PROMPT.md`,
+  `DECISIONS.md`, `CONTEXT_INDEX.md`, `SOURCE_MAP.md`, and `_logs/raw_input.md`
+  reflect project state where available.
+- Added CLI support for documented readiness waivers:
+  `--approve-readiness --approval-note "..."`.
+- Added tests for successful builds, blocked builds, and approved builds with
+  waived blockers.
+
+Verified:
+
+- `.\.venv\Scripts\python.exe -m pytest amadeus/tests study_agent/tests -q`
+- `.\.venv\Scripts\python.exe -m ruff check amadeus .github pyproject.toml`
+- `.\.venv\Scripts\python.exe -m amadeus check-runtime`
+- `.\.venv\Scripts\python.exe -m amadeus build-text --output-dir C:\tmp\amadeus-readiness-smoke --project-name readiness-smoke-handoff --text "..."`
+- `.\.venv\Scripts\python.exe -m amadeus build-text --output-dir C:\tmp\amadeus-readiness-block --project-name readiness-block-handoff --text "...attached PDF file..."`
+- `.\.venv\Scripts\python.exe -m amadeus build-text --output-dir C:\tmp\amadeus-readiness-approved --project-name readiness-approved-handoff --text "...attached PDF file..." --approve-readiness --approval-note "..."`
+
+Notes:
+
+- The missing-PDF smoke intentionally blocks the build and writes a review
+  package under `_logs/`.
+- The approved missing-PDF smoke builds only after recording the explicit waiver
+  note in state and generated decisions.
+
 ## 2026-05-24 - Local Gemma Runtime Milestone
 
 Changed:
