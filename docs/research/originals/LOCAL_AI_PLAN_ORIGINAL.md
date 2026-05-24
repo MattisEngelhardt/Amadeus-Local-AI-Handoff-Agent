@@ -1,3 +1,10 @@
+# ARCHIVED LEGACY ORIGINAL
+
+This file is preserved for traceability only. It is not a current Amadeus architecture document.
+Current target: `gemma4:e4b` via Ollama, local `faster-whisper`, no required cloud LLM provider, and Amadeus as a handoff-workspace prep agent.
+
+For the curated summary, use `../LOCAL_AI_RESEARCH_ARCHIVE.md`.
+
 # Lokale AI & Autonome Agenten: Das Ultimative Handbuch für Production-Grade Engineering
 ### Ein tiefgehender Architektur-Leitfaden für Qwen 3.6, llama.cpp, Pydantic & die Vermeidung typischer Integrationsfehler
 
@@ -214,15 +221,15 @@ def process_and_parse_response(raw_response: str):
     if think_match:
         cot_trace = think_match.group(1).strip()
         logger.info(f"--- LOCAL LLM CHAIN-OF-THOUGHT TRACE ---\n{cot_trace}\n--------------------------------------")
-        
+
     # 2. XML-Denk-Tags vollständig aus dem Payload entfernen
     cleaned_payload = re.sub(r"<think>.*?</think>", "", raw_response, flags=re.DOTALL).strip()
-    
+
     # 3. Markdown Code-Block Umrandungen bereinigen
     markdown_block = re.search(r"```json\s*(.*?)\s*```", cleaned_payload, re.DOTALL)
     if markdown_block:
         cleaned_payload = markdown_block.group(1).strip()
-        
+
     # 4. Sichere Konvertierung in Python-Dictionary
     return json.loads(cleaned_payload)
 ```
@@ -237,7 +244,7 @@ Vor dem finalen Schreiben von generiertem Code auf die Festplatte muss der Agent
 def sanitize_code_payload(raw_code: str) -> str:
     # 1. Entferne eventuell generierte Denktraces
     clean_code = re.sub(r"<think>.*?</think>", "", raw_code, flags=re.DOTALL).strip()
-    
+
     # 2. Säubere Code von Markdown-Umrandungen (z. B. ```python)
     if clean_code.startswith("```"):
         lines = clean_code.splitlines()
@@ -246,7 +253,7 @@ def sanitize_code_payload(raw_code: str) -> str:
         if lines and lines[-1].startswith("```"):
             lines = lines[:-1]
         clean_code = "\n".join(lines).strip()
-        
+
     return clean_code
 ```
 
@@ -276,7 +283,7 @@ class TranscriptAnalyzer:
         load_dotenv()
         self.client = None
         self.quality_criteria = []
-        
+
         # Lokale Standardwerte definieren
         self.llm_provider = "local"
         self.local_api_base = "http://localhost:8080/v1"
@@ -292,7 +299,7 @@ class TranscriptAnalyzer:
                     self.quality_criteria = config.get("quality_criteria", [])
                     models_cfg = config.get("models", {})
                     self.llm_provider = models_cfg.get("llm_provider", "local")
-                    
+
                     if self.llm_provider == "local":
                         local_cfg = models_cfg.get("local", {})
                         self.local_api_base = local_cfg.get("api_base", "http://localhost:8080/v1")
@@ -328,7 +335,7 @@ class TranscriptAnalyzer:
 
         system_prompt = """Du bist ein Senior-Softwarearchitekt. Analysiere das rohe Entwickler-Transkript.
 Extrahiere und strukturiere einen umfassenden Projektplan im geforderten Format.
-Füge sinnvolle Hilfsdateien hinzu (z. B. pytest-Tests, README, config.yaml, .env), 
+Füge sinnvolle Hilfsdateien hinzu (z. B. pytest-Tests, README, config.yaml, .env),
 die für ein vollwertiges Boilerplate-Projekt unumgänglich sind."""
 
         if self.llm_provider == "local":
@@ -379,11 +386,11 @@ die für ein vollwertiges Boilerplate-Projekt unumgänglich sind."""
             )
             raw_text = response.choices[0].message.content
             cleaned = self._strip_thinking_tags(raw_text)
-            
+
             markdown_block = re.search(r"```json\s*(.*?)\s*```", cleaned, re.DOTALL)
             if markdown_block:
                 cleaned = markdown_block.group(1).strip()
-                
+
             return RequirementsModel(**json.loads(cleaned))
         except Exception as ex:
             logger.critical(f"Totaler Absturz: Auch der Regex-Fallback schlug fehl! {ex}")
@@ -419,7 +426,7 @@ class ProjectGenerator:
                     config = yaml.safe_load(f)
                     models_cfg = config.get("models", {})
                     self.llm_provider = models_cfg.get("llm_provider", "local")
-                    
+
                     if self.llm_provider == "local":
                         local_cfg = models_cfg.get("local", {})
                         self.local_api_base = local_cfg.get("api_base", "http://localhost:8080/v1")
@@ -438,7 +445,7 @@ class ProjectGenerator:
     def _sanitize_generated_code(self, raw_code: str) -> str:
         # Essenziell: Entferne alle Denkprozesse aus der Code-Datei
         clean_code = re.sub(r"<think>.*?</think>", "", raw_code, flags=re.DOTALL).strip()
-        
+
         # Markdown Fences bereinigen
         if clean_code.startswith("```"):
             lines = clean_code.splitlines()

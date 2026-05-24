@@ -1,3 +1,10 @@
+# ARCHIVED LEGACY ORIGINAL
+
+This file is preserved for traceability only. It is not a current Amadeus architecture document.
+Current target: `gemma4:e4b` via Ollama, local `faster-whisper`, no required cloud LLM provider, and Amadeus as a handoff-workspace prep agent.
+
+For the curated summary, use `../LEGACY_QWEN_LLAMA_CPP_NOTES.md`.
+
 # Building Local AI Agents: The Production-Grade Engineering Playbook
 ### A Deep-Dive Architecture Guide with Qwen 3.6, llama.cpp, and Pydantic/Instructor
 
@@ -149,15 +156,15 @@ def clean_and_parse_json(raw_text: str, schema_class: type[BaseModel]) -> BaseMo
     if think_match:
         thinking_trace = think_match.group(1).strip()
         logger.info(f"--- MODEL THINKING TRACE ---\n{thinking_trace}\n----------------------------")
-    
+
     # 2. Strip XML tags
     cleaned = re.sub(r"<think>.*?</think>", "", raw_text, flags=re.DOTALL).strip()
-    
+
     # 3. Pull JSON out of markdown blocks
     markdown_block = re.search(r"```json\s*(.*?)\s*```", cleaned, re.DOTALL)
     if markdown_block:
         cleaned = markdown_block.group(1).strip()
-        
+
     data = json.loads(cleaned)
     return schema_class(**data)
 ```
@@ -166,7 +173,7 @@ def clean_and_parse_json(raw_text: str, schema_class: type[BaseModel]) -> BaseMo
 
 ## 6. Scaffolding Safeguards: Preventing File Corruption
 
-When a reasoning model is tasked with generating raw code for a file, it will write its thinking trace inside the output. 
+When a reasoning model is tasked with generating raw code for a file, it will write its thinking trace inside the output.
 
 ### The Threat:
 Saving the raw LLM generation directly results in files containing:
@@ -186,7 +193,7 @@ The file generator must proactively scrub thinking tags before saving any code t
 def sanitize_generated_code(raw_code: str) -> str:
     # Proactively strip reasoning tags to prevent SyntaxErrors
     clean_code = re.sub(r"<think>.*?</think>", "", raw_code, flags=re.DOTALL).strip()
-    
+
     # Strip markdown fenced formatting if generated
     if clean_code.startswith("```"):
         lines = clean_code.splitlines()
@@ -238,7 +245,7 @@ class TranscriptAnalyzer:
                     self.quality_criteria = config.get("quality_criteria", [])
                     models_cfg = config.get("models", {})
                     self.llm_provider = models_cfg.get("llm_provider", "claude")
-                    
+
                     if self.llm_provider == "local":
                         local_cfg = models_cfg.get("local", {})
                         self.local_api_base = local_cfg.get("api_base", "http://localhost:8080/v1")
@@ -280,9 +287,9 @@ class TranscriptAnalyzer:
             quality_context = "\nEnsure the generated requirements enforce the following default quality guidelines:\n" + \
                               "\n".join([f"- {criterion}" for criterion in self.quality_criteria])
 
-        system_prompt = f"""You are a Senior Project Architect. Your job is to analyze a raw transcript of a developer describing a project they want to build. 
+        system_prompt = f"""You are a Senior Project Architect. Your job is to analyze a raw transcript of a developer describing a project they want to build.
 
-You must extract and organize a structured, comprehensive project specification plan. 
+You must extract and organize a structured, comprehensive project specification plan.
 To do this, analyze the user's intent, resolve ambiguities, and organize the requirements into a coherent design.
 {quality_context}
 
@@ -321,7 +328,7 @@ IMPORTANT GUIDELINES:
 
                 model_inst = genai.GenerativeModel(self.model)
                 prompt = f"{system_prompt}\n\nHere is the raw audio transcript:\n\n{transcript_text}"
-                
+
                 response = model_inst.generate_content(
                     prompt,
                     generation_config={
@@ -381,11 +388,11 @@ IMPORTANT GUIDELINES:
             )
             raw_text = response.choices[0].message.content
             cleaned = self._strip_thinking_tags(raw_text)
-            
+
             json_block = re.search(r"```json\s*(.*?)\s*```", cleaned, re.DOTALL)
             if json_block:
                 cleaned = json_block.group(1).strip()
-                
+
             return RequirementsModel(**json.loads(cleaned))
         except Exception as ex:
             logger.critical(f"Both Instructor and manual regex extraction failed: {ex}")
@@ -415,7 +422,7 @@ class ProjectGenerator:
         self.llm_provider = llm_provider or "claude"
         self.model = model
         self.client = None
-        
+
         self.local_api_base = "http://localhost:8080/v1"
         self.local_temperature = 0.2
 
@@ -425,7 +432,7 @@ class ProjectGenerator:
                     config = yaml.safe_load(f)
                     models_cfg = config.get("models", {})
                     self.llm_provider = models_cfg.get("llm_provider", "claude")
-                    
+
                     if self.llm_provider == "local":
                         local_cfg = models_cfg.get("local", {})
                         self.local_api_base = local_cfg.get("api_base", "http://localhost:8080/v1")
@@ -454,7 +461,7 @@ class ProjectGenerator:
     def _sanitize_generated_code(self, raw_code: str) -> str:
         # ABSOLUTELY ESSENTIAL: Remove reasoning thinking traces to avoid syntax corruption
         clean_code = re.sub(r"<think>.*?</think>", "", raw_code, flags=re.DOTALL).strip()
-        
+
         # Remove markdown code fence wrappings
         if clean_code.startswith("```"):
             lines = clean_code.splitlines()
