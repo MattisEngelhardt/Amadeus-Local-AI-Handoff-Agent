@@ -26,3 +26,14 @@ Not changed:
 Reason:
 
 The repository needed a clean canonical architecture before implementation refactoring.
+
+## 2026-05-24 - README Workflow Visual
+
+Changed:
+
+- Added `assets/amadeus_workflow_overview.svg`.
+- Updated `README.md` to show Amadeus' full input, local preparation, readiness gate, workspace, and handoff workflow.
+
+Reason:
+
+The public README needed a clearer recruiter-facing visual that explains Amadeus as a local AI handoff agent rather than a generic voice-to-code tool.

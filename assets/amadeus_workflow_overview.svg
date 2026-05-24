@@ -1,0 +1,218 @@
+<svg width="1600" height="950" viewBox="0 0 1600 950" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Amadeus Local AI Handoff Agent Workflow</title>
+  <desc id="desc">Workflow diagram showing Telegram, desktop speechbar, files and links flowing into local transcription, Gemma via Ollama, Amadeus preparation modules, a readiness gate, generated workspace files, and handoff to Codex, Claude Code, and Antigravity.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1600" y2="950" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0B1020"/>
+      <stop offset="0.48" stop-color="#101827"/>
+      <stop offset="1" stop-color="#12151D"/>
+    </linearGradient>
+    <linearGradient id="amadeus" x1="585" y1="250" x2="1015" y2="570" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#26D07C"/>
+      <stop offset="0.52" stop-color="#36A3FF"/>
+      <stop offset="1" stop-color="#F9B44A"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#000000" flood-opacity="0.26"/>
+    </filter>
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="0" stdDeviation="14" flood-color="#36A3FF" flood-opacity="0.35"/>
+    </filter>
+    <marker id="arrowBlue" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M2 2L10 6L2 10" stroke="#6EBBFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M2 2L10 6L2 10" stroke="#43D787" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <marker id="arrowAmber" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M2 2L10 6L2 10" stroke="#F9B44A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <style>
+      .title { font: 800 54px Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #F8FAFC; }
+      .subtitle { font: 500 23px Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #AAB7C9; }
+      .section { font: 800 23px Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #F8FAFC; }
+      .label { font: 750 20px Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #F8FAFC; }
+      .small { font: 520 15px Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #B9C5D6; }
+      .tiny { font: 500 12px Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #7F8DA3; }
+      .code { font: 650 16px "SFMono-Regular", Consolas, "Liberation Mono", monospace; fill: #D8E2F0; }
+      .card { fill: #162033; stroke: #2B3B54; stroke-width: 1.4; }
+      .panel { fill: #111A2B; stroke: #314158; stroke-width: 1.5; }
+      .chip { fill: #0F1726; stroke: #34445E; stroke-width: 1.2; }
+      .lineBlue { stroke: #6EBBFF; stroke-width: 3.2; marker-end: url(#arrowBlue); }
+      .lineGreen { stroke: #43D787; stroke-width: 3.2; marker-end: url(#arrowGreen); }
+      .lineAmber { stroke: #F9B44A; stroke-width: 3.2; marker-end: url(#arrowAmber); }
+    </style>
+  </defs>
+
+  <rect width="1600" height="950" fill="url(#bg)"/>
+  <circle cx="1380" cy="150" r="220" fill="#1E3A5F" opacity="0.22"/>
+  <circle cx="210" cy="780" r="260" fill="#183E2B" opacity="0.22"/>
+
+  <text x="80" y="86" class="title">Amadeus</text>
+  <text x="80" y="126" class="subtitle">Local AI Handoff Agent: voice, files, links -&gt; execution-ready workspaces</text>
+
+  <g transform="translate(1105 62)">
+    <rect width="400" height="86" rx="18" fill="#0E1625" stroke="#314158" stroke-width="1.5"/>
+    <circle cx="34" cy="30" r="8" fill="#43D787"/>
+    <text x="56" y="36" class="small">Core runs locally: Gemma 4 E4B + Ollama</text>
+    <circle cx="34" cy="58" r="8" fill="#36A3FF"/>
+    <text x="56" y="64" class="small">Handoff executes elsewhere: Codex, Claude Code, Antigravity</text>
+  </g>
+
+  <text x="92" y="205" class="section">1. Inputs</text>
+  <text x="582" y="205" class="section">2. Local Preparation Core</text>
+  <text x="1182" y="205" class="section">3. Handoff Workspace</text>
+
+  <g filter="url(#shadow)">
+    <rect x="70" y="235" width="350" height="420" rx="28" class="panel"/>
+    <g transform="translate(105 280)">
+      <rect width="280" height="78" rx="18" class="card"/>
+      <circle cx="39" cy="39" r="24" fill="#229ED9"/>
+      <path d="M25 40L55 27L48 53L40 45L34 51L35 43L25 40Z" fill="#FFFFFF"/>
+      <text x="80" y="34" class="label">Telegram</text>
+      <text x="80" y="56" class="small">voice, text, files, links</text>
+    </g>
+    <g transform="translate(105 382)">
+      <rect width="280" height="78" rx="18" class="card"/>
+      <circle cx="39" cy="39" r="24" fill="#26D07C"/>
+      <rect x="32" y="24" width="14" height="29" rx="7" fill="#071421"/>
+      <path d="M25 38C25 50 31 58 39 58C47 58 53 50 53 38" stroke="#071421" stroke-width="5" stroke-linecap="round"/>
+      <path d="M39 58V66" stroke="#071421" stroke-width="5" stroke-linecap="round"/>
+      <text x="80" y="34" class="label">Speechbar</text>
+      <text x="80" y="56" class="small">desktop capture + review</text>
+    </g>
+    <g transform="translate(105 484)">
+      <rect width="280" height="78" rx="18" class="card"/>
+      <circle cx="39" cy="39" r="24" fill="#F9B44A"/>
+      <path d="M28 24H43L52 33V55H28V24Z" fill="#0B1020"/>
+      <path d="M43 24V34H52" stroke="#F9B44A" stroke-width="2.5"/>
+      <text x="80" y="34" class="label">Files + Links</text>
+      <text x="80" y="56" class="small">PDF, DOCX, MD, examples</text>
+    </g>
+    <g transform="translate(105 586)">
+      <rect width="280" height="42" rx="14" fill="#0D1524" stroke="#30425D"/>
+      <text x="20" y="27" class="small">Raw input is always preserved</text>
+    </g>
+  </g>
+
+  <path d="M430 324C500 324 500 294 560 294" class="lineBlue"/>
+  <path d="M430 426C500 426 500 390 560 390" class="lineGreen"/>
+  <path d="M430 528C500 528 500 486 560 486" class="lineAmber"/>
+
+  <g filter="url(#shadow)">
+    <rect x="560" y="235" width="505" height="420" rx="30" fill="#10192B" stroke="url(#amadeus)" stroke-width="2.2"/>
+    <g filter="url(#softGlow)">
+      <circle cx="812" cy="326" r="72" fill="#0B1020" stroke="url(#amadeus)" stroke-width="5"/>
+      <path d="M779 329C791 289 836 289 848 329C852 343 842 361 812 370C782 361 775 343 779 329Z" fill="#26D07C" opacity="0.92"/>
+      <path d="M783 329C799 345 826 345 842 329" stroke="#F8FAFC" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="794" cy="320" r="5" fill="#0B1020"/>
+      <circle cx="830" cy="320" r="5" fill="#0B1020"/>
+    </g>
+    <text x="714" y="430" class="section">Amadeus Core</text>
+    <text x="658" y="459" class="small">Gemma 4 E4B via Ollama, guided by skills, schemas, memory, and validators</text>
+
+    <g transform="translate(610 502)">
+      <rect width="185" height="48" rx="14" class="chip"/>
+      <text x="22" y="31" class="small">faster-whisper STT</text>
+    </g>
+    <g transform="translate(820 502)">
+      <rect width="185" height="48" rx="14" class="chip"/>
+      <text x="26" y="31" class="small">Clean transcript</text>
+    </g>
+    <g transform="translate(610 570)">
+      <rect width="185" height="48" rx="14" class="chip"/>
+      <text x="28" y="31" class="small">Prompt compiler</text>
+    </g>
+    <g transform="translate(820 570)">
+      <rect width="185" height="48" rx="14" class="chip"/>
+      <text x="34" y="31" class="small">Gap analysis</text>
+    </g>
+    <g transform="translate(620 260)">
+      <rect width="138" height="42" rx="21" fill="#112A1F" stroke="#43D787"/>
+      <text x="24" y="27" class="small">Local-first</text>
+    </g>
+    <g transform="translate(866 260)">
+      <rect width="138" height="42" rx="21" fill="#2B2111" stroke="#F9B44A"/>
+      <text x="27" y="27" class="small">Ask first</text>
+    </g>
+  </g>
+
+  <path d="M812 398V491" class="lineGreen"/>
+  <path d="M794 526H813" stroke="#556A86" stroke-width="2"/>
+  <path d="M912 550V565" stroke="#556A86" stroke-width="2"/>
+
+  <g filter="url(#shadow)">
+    <rect x="676" y="705" width="272" height="92" rx="24" fill="#172031" stroke="#F9B44A" stroke-width="2"/>
+    <text x="730" y="742" class="label">Readiness Gate</text>
+    <text x="710" y="768" class="small">blockers resolved or assumptions approved</text>
+  </g>
+  <path d="M812 655V698" class="lineAmber"/>
+
+  <g filter="url(#shadow)">
+    <rect x="1170" y="235" width="360" height="420" rx="28" class="panel"/>
+    <text x="1208" y="283" class="label">Generated workspace</text>
+    <g transform="translate(1208 314)">
+      <rect width="282" height="34" rx="10" class="chip"/>
+      <text x="18" y="23" class="code">CLAUDE.md</text>
+      <text x="132" y="23" class="tiny">brain for Claude Code</text>
+    </g>
+    <g transform="translate(1208 360)">
+      <rect width="282" height="34" rx="10" class="chip"/>
+      <text x="18" y="23" class="code">AGENTS.md</text>
+      <text x="132" y="23" class="tiny">Codex entrypoint</text>
+    </g>
+    <g transform="translate(1208 406)">
+      <rect width="282" height="34" rx="10" class="chip"/>
+      <text x="18" y="23" class="code">MASTER_PROMPT.md</text>
+    </g>
+    <g transform="translate(1208 452)">
+      <rect width="282" height="34" rx="10" class="chip"/>
+      <text x="18" y="23" class="code">SOURCE_MAP.md</text>
+    </g>
+    <g transform="translate(1208 498)">
+      <rect width="282" height="34" rx="10" class="chip"/>
+      <text x="18" y="23" class="code">CONTEXT_INDEX.md</text>
+    </g>
+    <g transform="translate(1208 544)">
+      <rect width="282" height="34" rx="10" class="chip"/>
+      <text x="18" y="23" class="code">_sources/  _context/</text>
+    </g>
+    <g transform="translate(1208 590)">
+      <rect width="282" height="34" rx="10" class="chip"/>
+      <text x="18" y="23" class="code">_versions/  _logs/</text>
+    </g>
+  </g>
+
+  <path d="M1065 445C1110 445 1112 445 1160 445" class="lineBlue"/>
+  <path d="M948 752C1080 752 1078 612 1160 585" class="lineAmber"/>
+
+  <text x="100" y="745" class="section">Validation loop</text>
+  <g filter="url(#shadow)">
+    <rect x="70" y="772" width="480" height="92" rx="24" fill="#111A2B" stroke="#314158"/>
+    <text x="104" y="810" class="label">Observe -&gt; Summarize -&gt; Decide -&gt; Act -&gt; Validate -&gt; Record</text>
+    <text x="104" y="839" class="small">No silent assumptions. Missing context becomes a targeted question.</text>
+  </g>
+  <path d="M560 818C610 818 624 792 668 760" stroke="#43D787" stroke-width="3" stroke-dasharray="8 8" marker-end="url(#arrowGreen)"/>
+
+  <text x="1168" y="745" class="section">Execution targets</text>
+  <g filter="url(#shadow)">
+    <rect x="1138" y="772" width="392" height="92" rx="24" fill="#111A2B" stroke="#314158"/>
+    <g transform="translate(1162 798)">
+      <rect width="96" height="40" rx="13" fill="#0E1117" stroke="#59677A"/>
+      <text x="24" y="26" class="small">Codex</text>
+    </g>
+    <g transform="translate(1274 798)">
+      <rect width="118" height="40" rx="13" fill="#2B1F18" stroke="#D59A68"/>
+      <text x="20" y="26" class="small">Claude Code</text>
+    </g>
+    <g transform="translate(1408 798)">
+      <rect width="92" height="40" rx="13" fill="#132033" stroke="#6EBBFF"/>
+      <text x="13" y="26" class="small">Antigravity</text>
+    </g>
+  </g>
+  <path d="M1350 655V764" class="lineBlue"/>
+
+  <g transform="translate(80 904)">
+    <text class="tiny">Third-party product names identify intended handoff targets and integrations; no affiliation or endorsement implied. Diagram uses stylized badges, not official logos.</text>
+  </g>
+</svg>
