@@ -2,6 +2,21 @@
 
 This changelog records meaningful project-level changes. It complements `PROJECT_STATUS.md` and the immutable-ish snapshots under `dev_journey/snapshots/`.
 
+## 2026-05-27 - Validation Suite (Phase 9)
+
+Changed:
+
+- Created `core/validation_suite.py` with 7 validators: transcript, prompt, gap analysis, material coverage, source map, workspace tree, and handoff anatomy.
+- Added `ValidationReport` and `ValidationIssue` models for unified validation output.
+- Integrated the validation suite into `workflow.py` after workspace scaffolding.
+- Validation results are saved as `_logs/validation_report.md` and `_logs/validation_report.json` in every workspace.
+- Added comprehensive test coverage for all validators and the orchestrator.
+
+Verified:
+
+- pytest tests -q
+- ruff check .
+
 ## 2026-05-26 - CLAUDE.md & AGENTS.md Generation (Phase 8)
 
 Changed:

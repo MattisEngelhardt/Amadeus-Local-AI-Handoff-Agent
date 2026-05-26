@@ -1,7 +1,7 @@
 # Amadeus Project Status
 
-Status date: 2026-05-26
-Project phase: Phase 8 complete; rich CLAUDE.md and AGENTS.md generation implemented
+Status date: 2026-05-27
+Project phase: Phase 9 complete; validation suite integrated into workspace builds
 
 ## Current Canonical Direction
 
@@ -52,6 +52,13 @@ Completed in the current implementation milestone:
 - `core/versioning.py` generates an initial snapshot of the workspace upon creation.
 - `core/workspace_validator.py` validates the workspace after scaffolding,
   including `CLAUDE.md` and `AGENTS.md` anatomy.
+- `core/validation_suite.py` defines `ValidationReport` and `ValidationIssue`
+  models plus 7 validators: transcript, prompt, gap analysis, material
+  coverage, source map, workspace tree, and handoff anatomy.
+- `core/workflow.py` runs the validation suite after workspace scaffolding,
+  state persistence, gap logs, readiness logs, and the initial version snapshot.
+- Every built workspace now receives `_logs/validation_report.md` and
+  `_logs/validation_report.json`.
 - `core/scaffolder.py` creates the canonical workspace folders.
 - `core/transcriber.py` defaults to local `faster-whisper` without OpenAI API fallback.
 - UI labels and notifications use Amadeus identity.
@@ -81,8 +88,7 @@ Runtime note:
 - PDF and DOCX extraction are currently mocked adapter stubs and need the actual extraction implementations using `pypdf` and `python-docx`.
 - Readiness gate is enforced for CLI and speechbar pipeline builds, but it is not
   yet exposed as a rich interactive review UI.
-- Evaluation cases and validators beyond the current handoff contract and
-  `CLAUDE.md`/`AGENTS.md` anatomy tests are still pending.
+- Evaluation cases for handoff quality and validator regressions are still pending.
 
 ## Current File Authority
 
@@ -136,6 +142,7 @@ From the repository root:
 ```powershell
 python -m pytest tests -q
 python -m ruff check .
+python -m amadeus build-text --output-dir C:\tmp\phase9-test --project-name phase9-handoff --text "Build a Python REST API that serves weather data from a local SQLite database with authentication and rate limiting"
 python -m amadeus build-text --output-dir C:\tmp\phase8-test --project-name phase8-handoff --text "Build a CLI tool that processes CSV files and generates summary reports with charts"
 .\.venv\Scripts\python.exe -m amadeus check-runtime
 .\.venv\Scripts\python.exe -m pytest amadeus/tests study_agent/tests -q
@@ -148,6 +155,15 @@ python -m amadeus build-text --output-dir C:\tmp\phase8-test --project-name phas
 
 Observed verification:
 
+- Phase 9 full test suite collected 59 tests and passed with the available
+  interpreter: `python -m pytest tests -q`.
+- Phase 9 Ruff check passed: `python -m ruff check .`.
+- Phase 9 smoke build created:
+  `C:\tmp\phase9-test\phase9-handoff`.
+- The Phase 9 smoke workspace contains `_logs/validation_report.md` and
+  `_logs/validation_report.json`.
+- The Phase 9 smoke validation report ran all 7 validators and reported
+  0 errors, 0 warnings, and 0 info issues.
 - Phase 8 unit/integration tests passed with the available interpreter:
   `32 passed`.
 - Phase 8 Ruff check passed with the available interpreter.
@@ -177,10 +193,9 @@ Environment note:
 
 ## Next Priorities
 
-1. Expand the Phase 9 validation suite for transcripts, prompts, gap analysis,
-   material coverage, and source map completeness.
+1. Start Phase 10 evaluation cases for handoff quality, validator regressions,
+   prompt quality, source mapping, and readiness scoring.
 2. Implement real PDF/DOCX extraction inside `material_ingestion.py`.
 3. Live-test the desktop speechbar microphone UX against the new readiness flow.
 4. Add Telegram ingestion.
-5. Add evaluation cases for handoff quality and validator regressions.
-6. Add a richer interactive readiness review/approval surface.
+5. Add a richer interactive readiness review/approval surface.

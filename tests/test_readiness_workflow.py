@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from amadeus.core.validation_suite import VALIDATOR_NAMES
 from amadeus.core.validator import RequirementsValidator
 from amadeus.core.workflow import prepare_handoff_workspace
 from amadeus.models.requirements import RequirementsModel
@@ -40,10 +41,17 @@ def test_prepare_handoff_workspace_writes_state_and_readiness_logs(tmp_path):
     assert (project_path / "_logs" / "amadeus_state.json").exists()
     assert (project_path / "_logs" / "gap_analysis.json").exists()
     assert (project_path / "_logs" / "readiness_gate.md").exists()
+    assert (project_path / "_logs" / "validation_report.md").exists()
+    assert (project_path / "_logs" / "validation_report.json").exists()
 
     state_payload = json.loads((project_path / "_logs" / "amadeus_state.json").read_text())
     assert state_payload["readiness"]["score"] > 0
     assert state_payload["phase"] == "handoff_ready"
+
+    validation_payload = json.loads(
+        (project_path / "_logs" / "validation_report.json").read_text()
+    )
+    assert validation_payload["validators_run"] == VALIDATOR_NAMES
 
 
 def test_prepare_handoff_workspace_blocks_when_referenced_material_is_missing(tmp_path):

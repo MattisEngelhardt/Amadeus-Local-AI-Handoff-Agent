@@ -176,6 +176,10 @@ Acceptance:
 
 ## Phase 9: Validation Suite
 
+Status: Implemented on 2026-05-27. Validation suite with 7 validators
+(transcript, prompt, gap analysis, material coverage, source map, workspace
+tree, handoff anatomy) integrated into the build pipeline.
+
 Goal: prevent weak or incomplete workspaces.
 
 Tasks:
@@ -190,7 +194,7 @@ Tasks:
 
 Acceptance:
 
-- Invalid workspace build fails with actionable errors.
+- Invalid workspace validation fails with actionable errors in logs and reports.
 - Validators can be run in tests.
 
 ## Phase 10: Evaluation And Learning Loop
