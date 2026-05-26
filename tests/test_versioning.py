@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from pathlib import Path
 from amadeus.core.versioning import create_workspace_snapshot
+
 
 def test_create_workspace_snapshot_copies_canonical_files(tmp_path):
     project = tmp_path / "my_project"

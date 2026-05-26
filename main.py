@@ -8,9 +8,6 @@ import time
 from typing import Any
 
 import yaml
-from dotenv import load_dotenv
-from pynput import keyboard
-
 from amadeus.core.analyzer import TranscriptAnalyzer
 from amadeus.core.ollama_client import OllamaClient
 from amadeus.core.recorder import AudioRecorder
@@ -20,6 +17,8 @@ from amadeus.core.workflow import prepare_handoff_workspace
 from amadeus.ui.notification import notify_user
 from amadeus.ui.overlay import OverlayWindow
 from amadeus.ui.tray import SystemTrayApp
+from dotenv import load_dotenv
+from pynput import keyboard
 
 logging.basicConfig(
     level=logging.INFO,

@@ -157,4 +157,3 @@ def test_workflow_with_unsupported_material_creates_blocker(tmp_path):
     assert result.blocked is True
     assert result.state.materials[0].status == "failed"
     assert "Unsupported material type '.zip'" in result.state.materials[0].extraction_notes[0]
-

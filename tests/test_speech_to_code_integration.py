@@ -2,7 +2,6 @@ import os
 
 import numpy as np
 import scipy.io.wavfile as wav
-
 from amadeus.core.generator import ProjectGenerator
 from amadeus.core.scaffolder import ProjectScaffolder
 from amadeus.core.transcriber import AudioTranscriber

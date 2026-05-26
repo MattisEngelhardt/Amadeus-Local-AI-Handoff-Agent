@@ -7,7 +7,6 @@ import re
 from typing import Any
 
 import yaml
-
 from amadeus.core.ollama_client import OllamaClient, OllamaUnavailable
 from amadeus.models.requirements import RequirementsModel
 

@@ -58,14 +58,13 @@ class ProjectScaffolder:
                 for material in state.materials:
                     original_name = os.path.basename(material.original_path)
                     dest_path = os.path.join(sources_dir, original_name)
-                    # The material.original_path in state is stored as '_sources/filename.ext'
-                    # Or if it's the actual path from ingestion, let's just make sure we copy it
-                    # if it exists somewhere and is not already in dest_path
-                    # Wait, in workflow.py we did: record = MaterialRecord(original_path=f"_sources/{name}")
-                    # So it's relative. But wait, if it's relative to project_root, it's already there!
-                    # Let's just ensure if original_path is an absolute path, we copy it.
-                    if os.path.isabs(material.original_path) and os.path.exists(material.original_path):
-                        if not os.path.exists(dest_path) or not os.path.samefile(material.original_path, dest_path):
+                    if os.path.isabs(material.original_path) and os.path.exists(
+                        material.original_path
+                    ):
+                        if not os.path.exists(dest_path) or not os.path.samefile(
+                            material.original_path,
+                            dest_path,
+                        ):
                             shutil.copy2(material.original_path, dest_path)
 
             return project_root

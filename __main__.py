@@ -130,7 +130,13 @@ def main(argv: list[str] | None = None) -> int:
         default="",
         help="Required rationale when waiving readiness blockers.",
     )
-    build_parser.add_argument("--materials", nargs="*", default=[], type=Path, help="Source files to ingest")
+    build_parser.add_argument(
+        "--materials",
+        nargs="*",
+        default=[],
+        type=Path,
+        help="Source files to ingest",
+    )
     build_parser.set_defaults(func=build_text)
 
     args = parser.parse_args(argv)
