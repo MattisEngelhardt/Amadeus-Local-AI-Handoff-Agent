@@ -13,6 +13,8 @@ Changed:
 - Added `validate_workspace` to check the generated handoff workspace for canonical files and valid source map references.
 - Added `--materials` parameter to the CLI for ingesting files.
 - Added integration tests for versioning, validation, and material gap analysis.
+- Created a robust GitHub Actions CI pipeline (`.github/workflows/ci.yml`) to automatically run `ruff` and `pytest` (using `xvfb` and `libportaudio2` for headless environment compatibility) on PRs and pushes to main.
+- Created a Pull Request template (`.github/pull_request_template.md`) to enforce local verification, quality criteria, and blueprint alignment for all future pull requests.
 
 Verified:
 

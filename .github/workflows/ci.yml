@@ -1,0 +1,62 @@
+name: Amadeus CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint:
+    name: Code Quality (Ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-level: "3.11"
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff
+
+      - name: Run Ruff Check
+        run: ruff check .
+
+  test:
+    name: Automated Tests (Pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-level: "3.11"
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install system dependencies (for audio and headless execution)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libportaudio2 xvfb
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # We set PYTHONPATH to root so pytest can import the modules correctly
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Run Pytest (with virtual framebuffer)
+        env:
+          PYTHONPATH: .
+        run: |
+          xvfb-run pytest tests/ -v
