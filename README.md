@@ -6,7 +6,7 @@ It is closer to voice-to-context than voice-to-code: the output is not productio
 
 Amadeus is not the final task executor. It prepares the context, detects gaps, asks targeted questions, builds the workspace, and writes the instructions for the executing agent.
 
-![Amadeus workflow overview](assets/amadeus_workflow_overview.svg)
+<img width="1678" height="1672" alt="Workflow Amadeus" src="https://github.com/user-attachments/assets/1e80f5db-b992-4bea-be33-02e1f3fe677b" />
 
 Third-party product names in the diagram identify intended integrations and handoff targets; no affiliation or endorsement is implied.
 
