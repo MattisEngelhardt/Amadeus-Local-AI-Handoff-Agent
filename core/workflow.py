@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import shutil
 from dataclasses import dataclass
+from pathlib import Path
 
 from amadeus.core.gap_analysis import GapAnalysisResult, GapAnalyzer
 from amadeus.core.generator import ProjectGenerator
@@ -23,6 +25,40 @@ class HandoffBuildResult:
     message: str = ""
 
 
+def _ingest_materials(state: ProjectState, source_files: list[Path]) -> ProjectState:
+    """Ingest all provided source files into _sources/ and _context/."""
+    from amadeus.core.material_ingestion import ingest_material
+    from amadeus.models.state import MaterialRecord
+
+    context_dir = Path(state.target_path) / "_context"
+    sources_dir = Path(state.target_path) / "_sources"
+    context_dir.mkdir(parents=True, exist_ok=True)
+    sources_dir.mkdir(parents=True, exist_ok=True)
+
+    for source_path in source_files:
+        # 1. Original in _sources/ kopieren
+        dest = sources_dir / source_path.name
+        if source_path.exists() and source_path.is_file():
+            shutil.copy2(source_path, dest)
+
+        # 2. Konvertieren nach _context/
+        result = ingest_material(source_path, context_dir)
+
+        # 3. MaterialRecord im State registrieren
+        record = MaterialRecord(
+            source_id=result.source_id,
+            original_path=f"_sources/{source_path.name}",
+            context_path=result.context_path or "",
+            material_type=source_path.suffix.lstrip("."),
+            purpose="User-provided material",
+            status="converted" if result.status == "ingested" else "failed",
+            extraction_notes=list(result.extraction_notes),
+        )
+        state.materials.append(record)
+
+    return state
+
+
 def prepare_handoff_workspace(
     requirements: RequirementsModel,
     raw_text: str,
@@ -32,6 +68,7 @@ def prepare_handoff_workspace(
     channel: str = "cli",
     input_kind: str = "text",
     transcript_language: str = "de",
+    source_files: list[Path] | None = None,
 ) -> HandoffBuildResult:
     """Run the Amadeus state, gap, readiness, and build pipeline."""
 
@@ -45,6 +82,9 @@ def prepare_handoff_workspace(
         input_kind=input_kind,
         transcript_language=transcript_language,
     )
+
+    if source_files:
+        state = _ingest_materials(state, source_files)
 
     gap_analyzer = GapAnalyzer()
     gap_analysis = gap_analyzer.analyze(requirements, state, raw_text)
@@ -87,6 +127,7 @@ def prepare_handoff_workspace(
     scaffolded_path = ProjectScaffolder(base_output_dir=output_dir).scaffold(
         requirements,
         generated_files,
+        state=state,
     )
     if not scaffolded_path:
         return HandoffBuildResult(
@@ -99,11 +140,24 @@ def prepare_handoff_workspace(
             message="Workspace scaffolding failed.",
         )
 
+    from amadeus.core.workspace_validator import validate_workspace
+    validation_errors = validate_workspace(scaffolded_path)
+    if validation_errors:
+        # Just logging the warnings, build is not aborted
+        import logging
+        logger = logging.getLogger(__name__)
+        for err in validation_errors:
+            logger.warning("Workspace validation warning: %s", err)
+
     state.transition_to(ProjectPhase.HANDOFF_READY)
     readiness_report = readiness_gate.render_markdown(state)
     state_path = state_store.save(state, scaffolded_path)
     state_store.save_gap_analysis(gap_analysis, scaffolded_path)
     state_store.save_readiness_report(readiness_report, scaffolded_path)
+
+    from amadeus.core.versioning import create_workspace_snapshot
+    create_workspace_snapshot(scaffolded_path, "Initial workspace build")
+
     return HandoffBuildResult(
         project_path=scaffolded_path,
         state=state,

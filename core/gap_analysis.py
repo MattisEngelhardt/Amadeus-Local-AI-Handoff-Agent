@@ -88,6 +88,21 @@ class GapAnalyzer:
             )
             result.missing_materials.append("User-referenced files or source materials")
 
+        failed_materials = [m for m in state.materials if m.status == "failed"]
+        if failed_materials:
+            for m in failed_materials:
+                result.blockers.append(
+                    self._gap(
+                        "blocker",
+                        f"Material extraction failed: {m.original_path}",
+                        (
+                            f"The provided material '{m.original_path}' could not be extracted: "
+                            f"{'; '.join(m.extraction_notes)}"
+                        ),
+                        f"Can you provide '{m.original_path}' in a supported format (like .md or .txt)?",
+                    )
+                )
+
         if not state.materials:
             result.assumptions.append(
                 self._gap(
@@ -99,6 +114,18 @@ class GapAnalyzer:
                     ),
                     "Should any source files be added before the handoff is built?",
                     status="recorded",
+                )
+            )
+        elif not self._mentions_materials(normalized_text):
+            result.optional_items.append(
+                self._gap(
+                    "optional",
+                    "Unreferenced materials attached",
+                    (
+                        "Source files were provided, but the input text does not explicitly "
+                        "reference them. They will be included in the context anyway."
+                    ),
+                    "",
                 )
             )
 

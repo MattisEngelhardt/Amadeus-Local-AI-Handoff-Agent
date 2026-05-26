@@ -90,6 +90,7 @@ class WorkspacePlan(BaseModel):
     )
     planned_files: list[str] = Field(default_factory=list)
     planned_directories: list[str] = Field(default_factory=list)
+    skills_to_include: list[str] = Field(default_factory=list)
 
 
 class ReadinessSnapshot(BaseModel):

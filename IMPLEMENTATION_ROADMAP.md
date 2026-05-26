@@ -117,6 +117,8 @@ Acceptance:
 
 ## Phase 6: Material Processing
 
+Status: Implemented basic conversion (.txt, .md) and integrated into workflow on 2026-05-26. PDF/DOCX remain stubs.
+
 Goal: convert user materials into AI-usable context.
 
 Tasks:
@@ -134,8 +136,7 @@ Acceptance:
 
 ## Phase 7: Workspace Builder
 
-Status: partially implemented. Workspace generation now consumes project state
-and readiness output, while material ingestion and version snapshots are still pending.
+Status: Implemented completely on 2026-05-26. Creates canonical folders, workspace files, source maps, context indices, and versions.
 
 Goal: build the final handoff workspace.
 

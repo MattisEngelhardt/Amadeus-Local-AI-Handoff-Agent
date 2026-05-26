@@ -2,6 +2,23 @@
 
 This changelog records meaningful project-level changes. It complements `PROJECT_STATUS.md` and the immutable-ish snapshots under `dev_journey/snapshots/`.
 
+## 2026-05-26 - Workspace Builder & Material Ingestion
+
+Changed:
+
+- Integrated `material_ingestion.py` spike into the core workflow.
+- Extended the gap analysis to detect missing or failed materials.
+- Updated the generator to populate `SOURCE_MAP.md` and `CONTEXT_INDEX.md` with extracted material data.
+- Implemented `create_workspace_snapshot` in `versioning.py` to create a `_versions/` snapshot after build.
+- Added `validate_workspace` to check the generated handoff workspace for canonical files and valid source map references.
+- Added `--materials` parameter to the CLI for ingesting files.
+- Added integration tests for versioning, validation, and material gap analysis.
+
+Verified:
+
+- All tests pass (`pytest amadeus/tests`).
+- Smoke tests running against local Gemma 4 via Ollama successfully ingested materials and generated complete workspaces with real version snapshots.
+
 ## 2026-05-25 - Project State And Readiness Gate
 
 Changed:

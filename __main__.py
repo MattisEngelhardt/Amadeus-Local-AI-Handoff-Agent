@@ -1,5 +1,6 @@
 import argparse
 import sys
+from pathlib import Path
 
 from amadeus.core.analyzer import TranscriptAnalyzer
 from amadeus.core.ollama_client import OllamaClient, OllamaUnavailable
@@ -73,6 +74,7 @@ def build_text(args: argparse.Namespace) -> int:
         approval_note=args.approval_note,
         channel="cli",
         input_kind="text",
+        source_files=args.materials,
     )
 
     if result.blocked:
@@ -128,6 +130,7 @@ def main(argv: list[str] | None = None) -> int:
         default="",
         help="Required rationale when waiving readiness blockers.",
     )
+    build_parser.add_argument("--materials", nargs="*", default=[], type=Path, help="Source files to ingest")
     build_parser.set_defaults(func=build_text)
 
     args = parser.parse_args(argv)

@@ -70,6 +70,11 @@ class ProjectGenerator:
                 purpose="Raw user input placeholder",
             ),
             ProjectFileModel(
+                file_path="_logs/build_log.md",
+                content=self._build_log(state, readiness_report, now),
+                purpose="Protocol of the workspace build process",
+            ),
+            ProjectFileModel(
                 file_path="_context/README.md",
                 content="# Context\n\nConverted source material belongs in this folder.\n",
                 purpose="Context folder marker",
@@ -84,7 +89,7 @@ class ProjectGenerator:
             ),
             ProjectFileModel(
                 file_path="_skills/README.md",
-                content="# Skills\n\nOptional specialist execution instructions belong here.\n",
+                content=self._skills_readme(state),
                 purpose="Skills folder marker",
             ),
             ProjectFileModel(
@@ -321,56 +326,60 @@ workspace files as the source of truth.
 """
 
     def _context_index(self, state: ProjectState | None) -> str:
-        rows = ["| Context File | Source ID | Purpose | Notes |", "|---|---|---|---|"]
+        sections = ["# Context Index\n", "## Materials"]
+        mat_rows = ["| # | Context File | Type | Purpose | Extraction Notes |", "|---|---|---|---|---|"]
+
+        has_materials = False
         if state:
-            for material in state.materials:
-                if material.context_path:
-                    notes = "; ".join(material.extraction_notes) or material.status
-                    rows.append(
-                        "| "
-                        f"`{material.context_path}` | {material.source_id} | "
-                        f"{material.purpose or 'Source context'} | {notes} |"
-                    )
+            for i, material in enumerate(state.materials, 1):
+                has_materials = True
+                notes = "; ".join(material.extraction_notes) or material.status
+                mat_rows.append(
+                    f"| {i} | `{material.context_path}` | {material.material_type} | "
+                    f"{material.purpose or 'Source material'} | {notes} |"
+                )
 
-        if len(rows) > 2:
-            return "# Context Index\n\n" + "\n".join(rows) + "\n"
+        if not has_materials:
+            mat_rows.append("| - | - | - | - | - |")
 
-        return """# Context Index
+        sections.append("\n".join(mat_rows) + "\n")
 
-No converted source files were registered during initial workspace generation.
+        sections.append("## Links")
+        link_rows = ["| # | URL | Purpose | Status |", "|---|---|---|---|"]
 
-Add entries in this format:
+        has_links = False
+        if state:
+            for i, link in enumerate(state.links, 1):
+                has_links = True
+                link_rows.append(f"| {i} | `{link.url}` | {link.purpose} | {link.status} |")
 
-| Context File | Source ID | Purpose | Notes |
-|---|---|---|---|
-"""
+        if not has_links:
+            link_rows.append("| - | - | - | - |")
+
+        sections.append("\n".join(link_rows) + "\n")
+
+        return "\n".join(sections)
 
     def _source_map(self, state: ProjectState | None) -> str:
         rows = [
-            "| Source ID | Original Source | Converted Context | Purpose | Referenced By |",
+            "| Source ID | Original | Converted | Purpose | Status |",
             "|---|---|---|---|---|",
         ]
+
+        has_sources = False
         if state:
             for material in state.materials:
+                has_sources = True
                 rows.append(
-                    "| "
-                    f"{material.source_id} | `{material.original_path}` | "
-                    f"`{material.context_path or 'not converted'}` | "
-                    f"{material.purpose or 'Source material'} | MASTER_PROMPT.md |"
+                    f"| {material.source_id} | `{material.original_path}` | "
+                    f"`{material.context_path or ''}` | "
+                    f"{material.purpose or 'Source material'} | {material.status} |"
                 )
 
-        if len(rows) > 2:
-            return "# Source Map\n\n" + "\n".join(rows) + "\n"
+        if not has_sources:
+            rows.append("| - | - | - | - | - |")
 
-        return """# Source Map
-
-No original sources were registered during initial workspace generation.
-
-Add entries in this format:
-
-| Source ID | Original Source | Converted Context | Purpose | Referenced By |
-|---|---|---|---|---|
-"""
+        return "# Source Map\n\n" + "\n".join(rows) + "\n"
 
     def _raw_input_log(self, state: ProjectState | None) -> str:
         if not state or not state.raw_inputs:
@@ -386,6 +395,45 @@ Add entries in this format:
                 f"{item.raw_text.strip() or '_No raw text captured._'}"
             )
         return "\n\n".join(sections) + "\n"
+
+    def _build_log(self, state: ProjectState | None, readiness_report: str, timestamp: str) -> str:
+        log = [
+            f"# Build Log\n\nBuilt at: {timestamp}\n",
+            "## Phases\n",
+            f"- Current Phase: {state.phase.value if state else 'unknown'}\n",
+        ]
+
+        if state:
+            log.append("\n## Materials Processed\n")
+            if state.materials:
+                for mat in state.materials:
+                    log.append(f"- {mat.source_id}: {mat.status} ({mat.original_path})")
+            else:
+                log.append("- No materials processed.")
+
+            log.append("\n## Gap Analysis Summary\n")
+            log.append(f"- Blockers: {len([g for g in state.gaps if g.category == 'blocker'])}")
+            log.append(f"- Assumptions: {len([g for g in state.gaps if g.category == 'assumption'])}")
+            log.append(f"- Optional: {len([g for g in state.gaps if g.category == 'optional'])}")
+
+        log.append("\n## Readiness Result\n")
+        if readiness_report:
+            if "Build status: Blocked" in readiness_report:
+                log.append("Result: Blocked")
+            else:
+                log.append("Result: Passed / Approved")
+        else:
+            log.append("Result: Unknown")
+
+        return "\n".join(log) + "\n"
+
+    def _skills_readme(self, state: ProjectState | None) -> str:
+        base = "# Skills\n\nOptional specialist execution instructions belong here.\n"
+        if not state or not state.workspace_plan.skills_to_include:
+            return base
+
+        skills = "\n".join(f"- {skill}" for skill in state.workspace_plan.skills_to_include)
+        return f"{base}\n## Included Skills\n\n{skills}\n"
 
     def _bullet_list(self, items: list[str]) -> str:
         if not items:

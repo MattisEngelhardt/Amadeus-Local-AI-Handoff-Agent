@@ -1,7 +1,7 @@
 # Amadeus Project Status
 
-Status date: 2026-05-25
-Project phase: Local Gemma/Ollama runtime plus project state, gap analysis, and readiness gate working
+Status date: 2026-05-26
+Project phase: Material ingestion and Workspace Builder implemented
 
 ## Current Canonical Direction
 
@@ -30,6 +30,7 @@ Completed in the current implementation milestone:
   - `python -m amadeus check-runtime`
   - `python -m amadeus build-text --text "..."`
   - `python -m amadeus build-text --text "..." --approve-readiness --approval-note "..."`
+  - `python -m amadeus build-text --text "..." --materials notes.txt`
   - `python -m amadeus install-commands`
 - `Modelfile` defines Amadeus' Ollama identity on top of `gemma4:e4b`.
 - `core/ollama_client.py` talks to the local Ollama HTTP API with no cloud LLM provider.
@@ -42,10 +43,11 @@ Completed in the current implementation milestone:
 - `core/gap_analysis.py` detects thin goals, referenced-but-missing materials,
   assumptions, optional improvements, targeted questions, and readiness score.
 - `core/readiness.py` renders and enforces the pre-build readiness gate.
-- `core/workflow.py` centralizes text/audio handoff preparation for CLI and
-  desktop speechbar.
-- `core/generator.py` now creates handoff workspace files, not production app code.
-- Generated handoff files now consume project state when available.
+- `core/material_ingestion.py` converts source materials (.txt, .md) to clean Markdown.
+- `core/workflow.py` ingests materials, creates `_sources` and `_context`, runs gap analysis, scaffolds, and snapshots.
+- `core/generator.py` creates handoff workspace files, populated `SOURCE_MAP.md`, `CONTEXT_INDEX.md`, and `_logs/build_log.md`.
+- `core/versioning.py` generates an initial snapshot of the workspace upon creation.
+- `core/workspace_validator.py` validates the workspace after scaffolding.
 - `core/scaffolder.py` creates the canonical workspace folders.
 - `core/transcriber.py` defaults to local `faster-whisper` without OpenAI API fallback.
 - UI labels and notifications use Amadeus identity.
@@ -72,8 +74,7 @@ Runtime note:
 
 - Telegram ingestion is not implemented yet.
 - Desktop speechbar still needs live microphone UX verification after the core refactor.
-- Material ingestion and PDF/DOCX/TXT/MD conversion are not implemented yet.
-- Source map and context index files are generated as empty starter files until materials exist.
+- PDF and DOCX extraction are currently mocked adapter stubs and need the actual extraction implementations using `pypdf` and `python-docx`.
 - Readiness gate is enforced for CLI and speechbar pipeline builds, but it is not
   yet exposed as a rich interactive review UI.
 - Evaluation cases and validators beyond the current handoff contract tests are still pending.
@@ -120,6 +121,7 @@ Project journey:
 - `dev_journey/snapshots/2026-05-24_documentation-cleanup/`
 - `dev_journey/snapshots/2026-05-24_local-gemma-runtime/`
 - `dev_journey/snapshots/2026-05-25_state-readiness-gate/`
+- `dev_journey/snapshots/2026-05-26_workspace-builder-materials/`
 
 ## Verified Commands
 
@@ -152,10 +154,9 @@ Observed verification:
 
 ## Next Priorities
 
-1. Publish the state/readiness milestone to GitHub as the next fallback point.
-2. Add material ingestion and Markdown conversion for TXT/MD/PDF/DOCX files.
-3. Wire material records into state, source map, and context index.
-4. Live-test the desktop speechbar microphone UX against the new readiness flow.
-5. Add Telegram ingestion.
-6. Expand validators and evaluation cases.
-7. Add a richer interactive readiness review/approval surface.
+1. Implement real PDF/DOCX extraction inside `material_ingestion.py`.
+2. Populate `_skills/` depending on workspace plan configuration (Phase 8).
+3. Live-test the desktop speechbar microphone UX against the new readiness flow.
+4. Add Telegram ingestion.
+5. Expand validators and evaluation cases.
+6. Add a richer interactive readiness review/approval surface.

@@ -82,6 +82,62 @@ def test_prepare_handoff_workspace_can_build_with_documented_readiness_approval(
     assert result.state.readiness_approved is True
 
     project_path = Path(result.project_path)
-    decisions = (project_path / "DECISIONS.md").read_text()
-    assert "Referenced materials are missing (waived)" in decisions
-    assert "Proceed with text-only workspace" in decisions
+def test_workflow_with_text_material_ingests_and_builds(tmp_path):
+    source_file = tmp_path / "notes.txt"
+    source_file.write_text("Detailed requirements note.", encoding="utf-8")
+
+    result = prepare_handoff_workspace(
+        _requirements("material-workspace"),
+        raw_text="Build the system based on the attached files.",
+        output_dir=str(tmp_path),
+        source_files=[source_file]
+    )
+
+    assert result.built is True
+    assert result.blocked is False
+    assert len(result.state.materials) == 1
+    assert result.state.materials[0].status == "converted"
+
+    project_path = Path(result.project_path)
+    assert (project_path / "_sources" / "notes.txt").exists()
+
+    # context filename is slugified, let's just check if any .md file is there
+    context_files = list((project_path / "_context").glob("*.md"))
+    assert len([f for f in context_files if f.name != "README.md"]) == 1
+
+    source_map = (project_path / "SOURCE_MAP.md").read_text(encoding="utf-8")
+    assert "notes.txt" in source_map
+    assert "converted" in source_map
+
+def test_workflow_with_failed_material_creates_blocker(tmp_path):
+    # Pass a file that does not exist
+    missing_file = tmp_path / "does_not_exist.txt"
+
+    result = prepare_handoff_workspace(
+        _requirements("failed-material-workspace"),
+        raw_text="Build using the attached notes.",
+        output_dir=str(tmp_path),
+        source_files=[missing_file]
+    )
+
+    assert result.built is False
+    assert result.blocked is True
+    assert any("does_not_exist.txt" in b.title for b in result.state.open_blockers())
+    assert result.state.materials[0].status == "failed"
+
+def test_workflow_with_unsupported_material_creates_blocker(tmp_path):
+    unsupported_file = tmp_path / "archive.zip"
+    unsupported_file.write_bytes(b"PK\x03\x04")
+
+    result = prepare_handoff_workspace(
+        _requirements("unsupported-material-workspace"),
+        raw_text="See the attached zip archive.",
+        output_dir=str(tmp_path),
+        source_files=[unsupported_file]
+    )
+
+    assert result.built is False
+    assert result.blocked is True
+    assert result.state.materials[0].status == "failed"
+    assert "Unsupported material type '.zip'" in result.state.materials[0].extraction_notes[0]
+
