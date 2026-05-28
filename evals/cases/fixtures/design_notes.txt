@@ -1,0 +1,5 @@
+Requirements for the new system:
+- Needs to be fast
+- Has a REST API
+- Connects to SQLite
+- Supports multiple users

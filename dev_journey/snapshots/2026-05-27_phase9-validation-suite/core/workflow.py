@@ -52,10 +52,9 @@ def _ingest_materials(state: ProjectState, source_files: list[Path]) -> ProjectS
         context_path = ""
         if result.context_path:
             try:
-                context_path = (
-                    str(Path(result.context_path).resolve().relative_to(project_root.resolve()))
-                    .replace("\\", "/")
-                )
+                context_path = str(
+                    Path(result.context_path).resolve().relative_to(project_root.resolve())
+                ).replace("\\", "/")
             except ValueError:
                 context_path = str(result.context_path).replace("\\", "/")
 
@@ -108,8 +107,7 @@ def prepare_handoff_workspace(
     if approve_readiness and not readiness_gate.can_build(state):
         state = readiness_gate.approve(
             state,
-            approval_note
-            or "User explicitly approved building with documented readiness gaps.",
+            approval_note or "User explicitly approved building with documented readiness gaps.",
         )
 
     readiness_report = readiness_gate.render_markdown(state)
@@ -155,6 +153,7 @@ def prepare_handoff_workspace(
         )
 
     from amadeus.core.workspace_validator import validate_workspace
+
     validation_errors = validate_workspace(scaffolded_path)
     if validation_errors:
         # Just logging the warnings, build is not aborted
@@ -168,6 +167,7 @@ def prepare_handoff_workspace(
     state_store.save_readiness_report(readiness_report, scaffolded_path)
 
     from amadeus.core.versioning import create_workspace_snapshot
+
     create_workspace_snapshot(scaffolded_path, "Initial workspace build")
 
     from amadeus.core.validation_suite import run_validation_suite, save_validation_report

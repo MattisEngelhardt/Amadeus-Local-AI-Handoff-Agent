@@ -1,0 +1,10 @@
+- evals/runner.py
+- evals/scorer.py
+- evals/schema.py
+- core/cli.py
+- core/project_registry.py
+- core/tool_executor.py
+- core/tool_registry.py
+- core/modes.py
+- core/agent_loop.py
+- models/tools.py

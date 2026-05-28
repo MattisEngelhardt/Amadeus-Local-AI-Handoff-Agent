@@ -74,8 +74,7 @@ class ValidationReport(BaseModel):
             for issue in self.issues:
                 location = f" [{issue.file_path}]" if issue.file_path else ""
                 lines.append(
-                    f"- {issue.severity.upper()} {issue.validator}{location}: "
-                    f"{issue.message}"
+                    f"- {issue.severity.upper()} {issue.validator}{location}: {issue.message}"
                 )
 
         return "\n".join(lines)
@@ -346,8 +345,7 @@ def validate_gap_analysis(
                         validator="gap_analysis",
                         severity="error",
                         message=(
-                            "Open blocker gap exists while workspace is handoff_ready: "
-                            f"{gap.title}"
+                            f"Open blocker gap exists while workspace is handoff_ready: {gap.title}"
                         ),
                         file_path="_logs/gap_analysis.json",
                     )
@@ -446,8 +444,7 @@ def validate_material_coverage(
                     validator="material_coverage",
                     severity="warning",
                     message=(
-                        f"Material failed conversion: {material.original_path}. "
-                        f"Notes: {notes}"
+                        f"Material failed conversion: {material.original_path}. Notes: {notes}"
                     ),
                     file_path=material.original_path,
                 )
@@ -691,10 +688,7 @@ def render_validation_report_markdown(report: ValidationReport) -> str:
         "",
         "## Summary",
         "",
-        (
-            f"{report.error_count} errors, {report.warning_count} warnings, "
-            f"{report.info_count} info"
-        ),
+        (f"{report.error_count} errors, {report.warning_count} warnings, {report.info_count} info"),
         "",
         "## Validators Run",
         "",

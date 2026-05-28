@@ -48,9 +48,7 @@ def test_prepare_handoff_workspace_writes_state_and_readiness_logs(tmp_path):
     assert state_payload["readiness"]["score"] > 0
     assert state_payload["phase"] == "handoff_ready"
 
-    validation_payload = json.loads(
-        (project_path / "_logs" / "validation_report.json").read_text()
-    )
+    validation_payload = json.loads((project_path / "_logs" / "validation_report.json").read_text())
     assert validation_payload["validators_run"] == VALIDATOR_NAMES
 
 
@@ -94,8 +92,7 @@ def test_workflow_does_not_treat_future_csv_inputs_as_missing_materials(tmp_path
     result = prepare_handoff_workspace(
         _requirements("csv-tool-workspace"),
         raw_text=(
-            "Build a CLI tool that processes CSV files and generates "
-            "summary reports with charts."
+            "Build a CLI tool that processes CSV files and generates summary reports with charts."
         ),
         output_dir=str(tmp_path),
     )
@@ -165,4 +162,3 @@ def test_workflow_with_unsupported_material_creates_blocker(tmp_path):
     assert result.blocked is True
     assert result.state.materials[0].status == "failed"
     assert "Unsupported material type '.zip'" in result.state.materials[0].extraction_notes[0]
-

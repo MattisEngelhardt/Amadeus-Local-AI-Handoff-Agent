@@ -1,0 +1,4 @@
+Architecture constraints:
+- Use FastAPI
+- No external DB
+- Run locally

@@ -8,37 +8,29 @@ class FilePlaceholder(BaseModel):
 
     file_path: str = Field(
         description=(
-            "The relative path where this file should be created within the project "
-            "directory."
+            "The relative path where this file should be created within the project directory."
         )
     )
     purpose: str = Field(
         description=(
-            "Detailed description of what this file should contain and its role in "
-            "the application."
+            "Detailed description of what this file should contain and its role in the application."
         )
     )
+
 
 class RequirementsModel(BaseModel):
     """Structured project requirements extracted from a voice transcript."""
 
     project_name: str = Field(
-        description=(
-            "A clean, kebab-case or snake_case name for the project folder."
-        )
+        description=("A clean, kebab-case or snake_case name for the project folder.")
     )
-    display_name: str = Field(
-        description="A user-friendly readable name for the project."
-    )
+    display_name: str = Field(description="A user-friendly readable name for the project.")
     short_description: str = Field(
         description=(
-            "A concise 1-2 sentence description of the project and its core value "
-            "proposition."
+            "A concise 1-2 sentence description of the project and its core value proposition."
         )
     )
-    project_type: str = Field(
-        description="The type of project or handoff workspace."
-    )
+    project_type: str = Field(description="The type of project or handoff workspace.")
     tech_stack: List[str] = Field(
         description="List of core languages, frameworks, and technologies used."
     )

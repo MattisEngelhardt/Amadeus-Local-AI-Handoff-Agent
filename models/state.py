@@ -104,6 +104,20 @@ class ReadinessSnapshot(BaseModel):
     generated_at: str = Field(default_factory=utc_now_iso)
 
 
+class ProjectRegistryEntry(BaseModel):
+    project_name: str
+    display_name: str
+    project_path: str
+    created_at: str = Field(default_factory=utc_now_iso)
+    updated_at: str = Field(default_factory=utc_now_iso)
+    phase: ProjectPhase = ProjectPhase.CONTEXT_COLLECTION
+    readiness_score: int = 0
+    is_active: bool = False
+
+
+from amadeus.models.tools import ActionRecord
+
+
 class ProjectState(BaseModel):
     schema_version: int = 1
     project_name: str
@@ -125,6 +139,7 @@ class ProjectState(BaseModel):
     prompt_versions: list[PromptVersionRecord] = Field(default_factory=list)
     workspace_plan: WorkspacePlan = Field(default_factory=WorkspacePlan)
     readiness: ReadinessSnapshot = Field(default_factory=ReadinessSnapshot)
+    action_log: list[ActionRecord] = Field(default_factory=list)
     readiness_approved: bool = False
     approval_note: str = ""
 

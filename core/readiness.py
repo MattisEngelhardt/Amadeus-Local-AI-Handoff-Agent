@@ -105,9 +105,7 @@ Files:
         items = [gap for gap in state.gaps if gap.category == category]
         if not items:
             return "- None."
-        return "\n".join(
-            f"- {gap.title} ({gap.status}): {gap.detail}" for gap in items
-        )
+        return "\n".join(f"- {gap.title} ({gap.status}): {gap.detail}" for gap in items)
 
     def _materials_lines(self, state: ProjectState) -> str:
         if not state.materials:

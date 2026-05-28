@@ -86,8 +86,7 @@ def test_workflow_does_not_treat_future_csv_inputs_as_missing_materials(tmp_path
     result = prepare_handoff_workspace(
         _requirements("csv-tool-workspace"),
         raw_text=(
-            "Build a CLI tool that processes CSV files and generates "
-            "summary reports with charts."
+            "Build a CLI tool that processes CSV files and generates summary reports with charts."
         ),
         output_dir=str(tmp_path),
     )

@@ -2,6 +2,19 @@
 
 This changelog records meaningful project-level changes. It complements `PROJECT_STATUS.md` and the immutable-ish snapshots under `dev_journey/snapshots/`.
 
+## 2026-05-27 - Final Amadeus Completion Roadmap
+
+Changed:
+
+- Expanded `IMPLEMENTATION_ROADMAP.md` after Phase 9 into a detailed completion roadmap through Phase 28.
+- Clarified that Ollama owns the local model runtime while the Amadeus app owns tools, state, files, memory, validation, channels, and packaging.
+- Added concrete future phases for global CLI, tool orchestration, intake registry, voice, documents, images/OCR, evidence ledger, readiness repair, skills, Telegram, desktop speechbar, memory, packaging, reliability, final acceptance, and optional fine-tuning.
+- Added `dev_journey/snapshots/2026-05-27_final-roadmap-planning/` before the canonical roadmap expansion.
+
+Verified:
+
+- Documentation consistency checked against `AMADEUS_WORKFLOW_BLUEPRINT.md`, `GEMMA_TO_AMADEUS_BLUEPRINT.md`, `REQUIREMENTS.md`, and `PROJECT_STATUS.md`.
+
 ## 2026-05-27 - Validation Suite (Phase 9)
 
 Changed:

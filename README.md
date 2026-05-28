@@ -10,6 +10,17 @@ Amadeus is not the final task executor. It prepares the context, detects gaps, a
 
 Third-party product names in the diagram identify intended integrations and handoff targets; no affiliation or endorsement is implied.
 
+## Quicklinks
+
+- [Documentation Index](DOCUMENTATION_INDEX.md)
+- [Project Status](PROJECT_STATUS.md)
+- [Implementation Roadmap](IMPLEMENTATION_ROADMAP.md)
+- [Requirements](REQUIREMENTS.md)
+- [Workflow Blueprint](AMADEUS_WORKFLOW_BLUEPRINT.md)
+- [Behavior Blueprint](GEMMA_TO_AMADEUS_BLUEPRINT.md)
+- [Claude Brain](CLAUDE.md)
+- [Codex Instructions](AGENTS.md)
+
 ## Target Architecture
 
 Core decisions:

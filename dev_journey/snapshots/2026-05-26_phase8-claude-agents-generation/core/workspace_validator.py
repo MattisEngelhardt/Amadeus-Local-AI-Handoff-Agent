@@ -34,9 +34,15 @@ def validate_workspace(project_path: Path | str) -> list[str]:
 
     # 1. Check for canonical files
     canonical_files = [
-        "CLAUDE.md", "AGENTS.md", "MASTER_PROMPT.md",
-        "PROJECT_BRIEF.md", "REQUIREMENTS.md", "DECISIONS.md",
-        "NEXT_STEPS.md", "CONTEXT_INDEX.md", "SOURCE_MAP.md"
+        "CLAUDE.md",
+        "AGENTS.md",
+        "MASTER_PROMPT.md",
+        "PROJECT_BRIEF.md",
+        "REQUIREMENTS.md",
+        "DECISIONS.md",
+        "NEXT_STEPS.md",
+        "CONTEXT_INDEX.md",
+        "SOURCE_MAP.md",
     ]
     for fname in canonical_files:
         if not (project_path / fname).exists():

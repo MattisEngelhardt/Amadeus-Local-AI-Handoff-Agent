@@ -171,9 +171,7 @@ class GapAnalyzer:
         state.gaps = result.all_gaps()
         state.open_questions = result.targeted_questions
         open_blockers = [
-            gap.title
-            for gap in result.blockers
-            if gap.status not in {"resolved", "waived"}
+            gap.title for gap in result.blockers if gap.status not in {"resolved", "waived"}
         ]
         state.readiness = ReadinessSnapshot(
             score=result.readiness_score,

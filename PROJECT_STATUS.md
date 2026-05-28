@@ -1,7 +1,20 @@
 # Amadeus Project Status
 
 Status date: 2026-05-27
-Project phase: Phase 9 complete; validation suite integrated into workspace builds
+Project phase: Phase 12 complete; Agent Loop, Registry, and Evals implemented.
+
+
+## Baseline Evaluation Score
+
+**Date:** 2026-05-28
+**Phase 10 Baseline Score:** 0.99 (99%)
+
+- **Cases Run:** 14
+- **Passed:** 14
+- **Failed:** 0
+- **Mode:** Deterministic
+
+This score serves as the baseline for evaluating regressions when adding the new agent loop and tool executor in Phase 12.
 
 ## Current Canonical Direction
 
@@ -24,6 +37,14 @@ Amadeus does not execute the final user task.
 ## Implementation State
 
 Completed in the current implementation milestone:
+
+
+- Phase 10: `evals/` module added with deterministic runner, scorer, and 14 test cases.
+- Phase 11: `core/project_registry.py` handles multi-project state and active context.
+- Phase 11: `__main__.py` includes `amadeus new`, `add`, `status`, `gaps`, `materials`, `build`, `validate`.
+- Phase 12: `models/tools.py` and `core/tool_registry.py` define agent tool contracts.
+- Phase 12: `core/tool_executor.py` manages sandboxed tool execution.
+- Phase 12: `core/agent_loop.py` handles multi-step Gemma interaction with Pydantic JSON validation.
 
 - Package imports now use the `amadeus.*` namespace.
 - `amadeus/__main__.py` provides CLI commands:
@@ -59,6 +80,10 @@ Completed in the current implementation milestone:
   state persistence, gap logs, readiness logs, and the initial version snapshot.
 - Every built workspace now receives `_logs/validation_report.md` and
   `_logs/validation_report.json`.
+- `IMPLEMENTATION_ROADMAP.md` now contains the detailed post-Phase-9 completion
+  plan from baseline evals through global CLI, tool runtime, inputs, material
+  ingestion, memory, Telegram, speechbar, packaging, reliability, and final
+  end-to-end acceptance.
 - `core/scaffolder.py` creates the canonical workspace folders.
 - `core/transcriber.py` defaults to local `faster-whisper` without OpenAI API fallback.
 - UI labels and notifications use Amadeus identity.
@@ -134,6 +159,7 @@ Project journey:
 - `dev_journey/snapshots/2026-05-25_state-readiness-gate/`
 - `dev_journey/snapshots/2026-05-26_workspace-builder-materials/`
 - `dev_journey/snapshots/2026-05-26_phase8-claude-agents-generation/`
+- `dev_journey/snapshots/2026-05-27_final-roadmap-planning/`
 
 ## Verified Commands
 
@@ -193,9 +219,12 @@ Environment note:
 
 ## Next Priorities
 
-1. Start Phase 10 evaluation cases for handoff quality, validator regressions,
-   prompt quality, source mapping, and readiness scoring.
-2. Implement real PDF/DOCX extraction inside `material_ingestion.py`.
-3. Live-test the desktop speechbar microphone UX against the new readiness flow.
-4. Add Telegram ingestion.
-5. Add a richer interactive readiness review/approval surface.
+1. Phase 10: build the baseline evaluation harness before broadening the agent
+   surface further.
+2. Phase 11: make Amadeus a global terminal agent command with project commands
+   and active-project registry.
+3. Phase 12: add the controlled local tool-runtime and mode orchestrator.
+4. Phase 14/15: complete voice and material ingestion, including real PDF/DOCX
+   extraction plus image/screenshot handling.
+5. Phase 20/21: implement Telegram and productionize the desktop speechbar once
+   the shared intake pipeline is stable.

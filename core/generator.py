@@ -81,8 +81,7 @@ class ProjectGenerator:
             ProjectFileModel(
                 file_path="_sources/README.md",
                 content=(
-                    "# Sources\n\n"
-                    "Original user-provided files belong in this folder unchanged.\n"
+                    "# Sources\n\nOriginal user-provided files belong in this folder unchanged.\n"
                 ),
                 purpose="Sources folder marker",
             ),
@@ -242,8 +241,7 @@ class ProjectGenerator:
         ]
         for path, purpose, when_to_read in directory_rows:
             rows.append(
-                f"| `{path}` | {self._table_cell(purpose)} | "
-                f"{self._table_cell(when_to_read)} |"
+                f"| `{path}` | {self._table_cell(purpose)} | {self._table_cell(when_to_read)} |"
             )
             seen.add(path)
 
@@ -450,8 +448,7 @@ class ProjectGenerator:
         state: ProjectState | None,
     ) -> str:
         readiness = (
-            f"Readiness score: {state.readiness.score}/100\n"
-            f"State phase: {state.phase.value}\n"
+            f"Readiness score: {state.readiness.score}/100\nState phase: {state.phase.value}\n"
             if state
             else ""
         )
@@ -760,9 +757,7 @@ workspace files as the source of truth.
         if not gaps:
             return "- None recorded."
 
-        return "\n".join(
-            f"- {gap.title} ({gap.status}): {gap.detail}" for gap in gaps
-        )
+        return "\n".join(f"- {gap.title} ({gap.status}): {gap.detail}" for gap in gaps)
 
     def _file_table(self, requirements: RequirementsModel) -> str:
         rows = ["| File | Purpose |", "|---|---|"]

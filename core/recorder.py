@@ -12,6 +12,7 @@ import sounddevice as sd
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
+
 class AudioRecorder:
     def __init__(self, samplerate=16000, channels=1):
         """
@@ -63,7 +64,7 @@ class AudioRecorder:
                 samplerate=self.samplerate,
                 channels=self.channels,
                 callback=self._callback,
-                dtype='int16' # Use 16-bit PCM for clean WAV output
+                dtype="int16",  # Use 16-bit PCM for clean WAV output
             ):
                 while self.recording:
                     self.elapsed_time = time.time() - self.start_time
@@ -110,6 +111,7 @@ class AudioRecorder:
         except Exception as e:
             logger.error(f"Failed to write audio file: {e}")
             return None
+
 
 # Quick local test runner
 if __name__ == "__main__":

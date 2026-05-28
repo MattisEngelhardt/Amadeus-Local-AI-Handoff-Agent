@@ -35,9 +35,7 @@ def _complete_master_prompt() -> str:
         "Quality Criteria",
         "Open Questions",
     ]
-    return "# Master Prompt\n\n" + "\n\n".join(
-        f"## {section}\n\nContent." for section in sections
-    )
+    return "# Master Prompt\n\n" + "\n\n".join(f"## {section}\n\nContent." for section in sections)
 
 
 def _requirements() -> RequirementsModel:
@@ -60,10 +58,12 @@ def test_validate_workspace_detects_missing_files_and_directories(tmp_path):
     assert any("Missing canonical file: CLAUDE.md" in e for e in errors)
     assert any("Missing canonical directory: _sources" in e for e in errors)
 
+
 def test_validate_workspace_detects_empty_claude_md(tmp_path):
     (tmp_path / "CLAUDE.md").write_text("   \n", encoding="utf-8")
     errors = validate_workspace(tmp_path)
     assert "CLAUDE.md is empty" in errors
+
 
 def test_validate_workspace_checks_source_map_references(tmp_path):
     source_map = tmp_path / "SOURCE_MAP.md"
@@ -72,6 +72,7 @@ def test_validate_workspace_checks_source_map_references(tmp_path):
     errors = validate_workspace(tmp_path)
     assert "SOURCE_MAP.md references missing source file: _sources/missing.txt" in errors
     assert "SOURCE_MAP.md references missing context file: _context/missing.md" in errors
+
 
 def test_validate_claude_md_anatomy_detects_missing_sections(tmp_path):
     (tmp_path / "CLAUDE.md").write_text(
@@ -153,8 +154,7 @@ def test_validate_workspace_still_passes_with_validation_suite(tmp_path):
         (tmp_path / file_name).write_text("Content", encoding="utf-8")
 
     claude_md = (
-        _complete_claude_md()
-        + "\nSee SOURCE_MAP.md and CONTEXT_INDEX.md for source coverage.\n"
+        _complete_claude_md() + "\nSee SOURCE_MAP.md and CONTEXT_INDEX.md for source coverage.\n"
     )
     agents_md = _complete_agents_md() + "\nFollow NEXT_STEPS.md before execution.\n"
     (tmp_path / "CLAUDE.md").write_text(claude_md, encoding="utf-8")

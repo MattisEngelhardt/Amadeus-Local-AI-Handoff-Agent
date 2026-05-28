@@ -3,6 +3,18 @@ import sys
 from pathlib import Path
 
 from amadeus.core.analyzer import TranscriptAnalyzer
+from amadeus.core.cli import (
+    run_add_command,
+    run_build_command,
+    run_gaps_command,
+    run_materials_command,
+    run_new_command,
+    run_open_command,
+    run_projects_command,
+    run_status_command,
+    run_use_command,
+    run_validate_command,
+)
 from amadeus.core.ollama_client import OllamaClient, OllamaUnavailable
 from amadeus.core.validator import RequirementsValidator
 from amadeus.core.workflow import prepare_handoff_workspace
@@ -97,6 +109,56 @@ def build_text(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_eval_command(args) -> int:
+    from amadeus.evals.runner import run_eval_suite
+
+    report = run_eval_suite(mode=args.mode, case_ids=args.case)
+    return 0 if report.cases_failed == 0 else 1
+
+
+def run_agent_command(args) -> int:
+    from pathlib import Path
+
+    from amadeus.core.agent_loop import AgentLoop
+    from amadeus.core.ollama_client import OllamaClient
+    from amadeus.core.project_registry import ProjectRegistry
+    from amadeus.core.state_store import ProjectStateStore
+
+    registry = ProjectRegistry()
+    entry = registry.get_active()
+
+    # Simple fallback: if no project, create one or fail
+    if not entry:
+        print("No active project. Please run 'amadeus new' first.")
+        return 1
+
+    store = ProjectStateStore()
+    state = store.load(Path(entry.project_path))
+    client = OllamaClient(base_url=args.ollama_url)
+
+    loop = AgentLoop(
+        state=state,
+        project_path=Path(entry.project_path),
+        client=client,
+        model=args.model,
+        dry_run=args.dry_run,
+    )
+
+    print(f"Starting Agent Loop for {state.project_name} in mode {loop.current_mode}...")
+    final_state = loop.run(initial_text=args.text)
+
+    store.save(final_state, Path(entry.project_path))
+    registry.update_state(final_state.project_name, final_state)
+
+    print("Agent loop finished.")
+    print("Action Log summary:")
+    for action in loop.action_log:
+        success_marker = "OK" if action.result.success else "FAIL"
+        print(f"  [{action.step}] {action.decision.action.tool} -> {success_marker}")
+
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m amadeus",
@@ -105,7 +167,7 @@ def main(argv: list[str] | None = None) -> int:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     install_parser = subparsers.add_parser("install-commands")
-    install_parser.set_defaults(func=lambda _args: (_print_install_commands() or 0))
+    install_parser.set_defaults(func=lambda _args: _print_install_commands() or 0)
 
     check_parser = subparsers.add_parser("check-runtime")
     check_parser.add_argument("--ollama-url", default="http://localhost:11434")
@@ -138,6 +200,60 @@ def main(argv: list[str] | None = None) -> int:
         help="Source files to ingest",
     )
     build_parser.set_defaults(func=build_text)
+
+    eval_parser = subparsers.add_parser("eval")
+    eval_parser.add_argument(
+        "--mode", choices=["deterministic", "local_model"], default="deterministic"
+    )
+    eval_parser.add_argument("--case", nargs="*", default=None)
+    eval_parser.set_defaults(func=run_eval_command)
+
+    new_parser = subparsers.add_parser("new")
+    new_parser.add_argument("text")
+    new_parser.add_argument("--model", default="amadeus")
+    new_parser.add_argument("--ollama-url", default="http://localhost:11434")
+    new_parser.add_argument("--output-dir", default="")
+    new_parser.set_defaults(func=run_new_command)
+
+    add_parser = subparsers.add_parser("add")
+    add_parser.add_argument("files", nargs="+")
+    add_parser.set_defaults(func=run_add_command)
+
+    status_parser = subparsers.add_parser("status")
+    status_parser.set_defaults(func=run_status_command)
+
+    gaps_parser = subparsers.add_parser("gaps")
+    gaps_parser.set_defaults(func=run_gaps_command)
+
+    materials_parser = subparsers.add_parser("materials")
+    materials_parser.set_defaults(func=run_materials_command)
+
+    build_cmd_parser = subparsers.add_parser("build")
+    build_cmd_parser.add_argument("--approve-readiness", action="store_true")
+    build_cmd_parser.add_argument("--approval-note", default="")
+    build_cmd_parser.set_defaults(func=run_build_command)
+
+    validate_parser = subparsers.add_parser("validate")
+    validate_parser.set_defaults(func=run_validate_command)
+
+    projects_parser = subparsers.add_parser("projects")
+    projects_parser.set_defaults(func=run_projects_command)
+
+    use_parser = subparsers.add_parser("use")
+    use_parser.add_argument("project_name")
+    use_parser.set_defaults(func=run_use_command)
+
+    open_parser = subparsers.add_parser("open")
+    open_parser.set_defaults(func=run_open_command)
+
+    agent_parser = subparsers.add_parser("agent")
+    agent_parser.add_argument("text", nargs="?", default="")
+    agent_parser.add_argument("--dry-run", action="store_true")
+    agent_parser.add_argument("--max-steps", type=int, default=20)
+    agent_parser.add_argument("--model", default="amadeus")
+    agent_parser.add_argument("--output-dir", default="")
+    agent_parser.add_argument("--ollama-url", default="http://localhost:11434")
+    agent_parser.set_defaults(func=run_agent_command)
 
     args = parser.parse_args(argv)
     return args.func(args)

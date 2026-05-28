@@ -16,8 +16,12 @@ def create_workspace_snapshot(
     snapshot_dir.mkdir(parents=True, exist_ok=True)
 
     target_files = files_to_snapshot or [
-        "CLAUDE.md", "AGENTS.md", "MASTER_PROMPT.md",
-        "PROJECT_BRIEF.md", "REQUIREMENTS.md", "DECISIONS.md",
+        "CLAUDE.md",
+        "AGENTS.md",
+        "MASTER_PROMPT.md",
+        "PROJECT_BRIEF.md",
+        "REQUIREMENTS.md",
+        "DECISIONS.md",
     ]
 
     for fname in target_files:
@@ -26,7 +30,6 @@ def create_workspace_snapshot(
             shutil.copy2(src, snapshot_dir / fname)
 
     (snapshot_dir / "SNAPSHOT.md").write_text(
-        f"# Snapshot {timestamp}\n\nReason: {reason}\n",
-        encoding="utf-8"
+        f"# Snapshot {timestamp}\n\nReason: {reason}\n", encoding="utf-8"
     )
     return snapshot_dir

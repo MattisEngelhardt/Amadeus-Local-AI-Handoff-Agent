@@ -5,6 +5,19 @@ Date: 2026-05-24
 
 This index defines each important Amadeus file, its authority, and how future agents should use it.
 
+## Quicklinks
+
+- [README.md](README.md)
+- [CLAUDE.md](CLAUDE.md)
+- [AGENTS.md](AGENTS.md)
+- [PROJECT_STATUS.md](PROJECT_STATUS.md)
+- [REQUIREMENTS.md](REQUIREMENTS.md)
+- [AMADEUS_WORKFLOW_BLUEPRINT.md](AMADEUS_WORKFLOW_BLUEPRINT.md)
+- [GEMMA_TO_AMADEUS_BLUEPRINT.md](GEMMA_TO_AMADEUS_BLUEPRINT.md)
+- [IMPLEMENTATION_ROADMAP.md](IMPLEMENTATION_ROADMAP.md)
+- [dev_journey/CHANGELOG.md](dev_journey/CHANGELOG.md)
+- [dev_journey/RESTORE_GUIDE.md](dev_journey/RESTORE_GUIDE.md)
+
 ## Classification Matrix
 
 | Path | Role | Status | Canonical? | Use |

@@ -95,9 +95,7 @@ class OllamaClient:
     def ensure_model(self, model: str) -> None:
         models = self.list_models()
         if model not in models:
-            raise OllamaModelMissing(
-                f"Model '{model}' is not installed. Run: ollama pull {model}"
-            )
+            raise OllamaModelMissing(f"Model '{model}' is not installed. Run: ollama pull {model}")
 
     def generate(
         self,
@@ -122,3 +120,20 @@ class OllamaClient:
         logger.info("Sending prompt to local Ollama model '%s'.", model)
         data = self._request("POST", "/api/generate", payload=payload)
         return str(data.get("response", "")).strip()
+
+    def generate_structured(
+        self,
+        prompt: str,
+        model: str,
+        system: str,
+        response_model: type[BaseModel],
+        options: dict[str, Any] | None = None,
+    ) -> BaseModel:
+        raw = self.generate(
+            prompt=prompt,
+            model=model,
+            system=system,
+            response_format="json",
+            options=options,
+        )
+        return response_model.model_validate_json(raw)
