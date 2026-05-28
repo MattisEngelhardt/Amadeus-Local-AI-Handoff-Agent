@@ -30,7 +30,7 @@ class HandoffBuildResult:
 
 def _ingest_materials(state: ProjectState, source_files: list[Path]) -> ProjectState:
     """Ingest all provided source files into _sources/ and _context/."""
-    from amadeus.core.material_ingestion import ingest_material
+    from amadeus.core.material_ingestion import IMAGE_SUFFIXES, ingest_image, ingest_material
     from amadeus.models.state import MaterialRecord
 
     project_root = Path(state.target_path)
@@ -40,15 +40,16 @@ def _ingest_materials(state: ProjectState, source_files: list[Path]) -> ProjectS
     sources_dir.mkdir(parents=True, exist_ok=True)
 
     for source_path in source_files:
-        # 1. Original in _sources/ kopieren
         dest = sources_dir / source_path.name
         if source_path.exists() and source_path.is_file():
             shutil.copy2(source_path, dest)
 
-        # 2. Konvertieren nach _context/
-        result = ingest_material(source_path, context_dir)
+        suffix = source_path.suffix.lower()
+        if suffix in IMAGE_SUFFIXES:
+            result = ingest_image(source_path, context_dir)
+        else:
+            result = ingest_material(source_path, context_dir)
 
-        # 3. MaterialRecord im State registrieren
         context_path = ""
         if result.context_path:
             try:
@@ -64,8 +65,12 @@ def _ingest_materials(state: ProjectState, source_files: list[Path]) -> ProjectS
             context_path=context_path,
             material_type=source_path.suffix.lstrip("."),
             purpose="User-provided material",
-            status="converted" if result.status == "ingested" else "failed",
+            status="converted"
+            if result.status == "ingested"
+            else ("partial" if result.status == "partial" else "failed"),
             extraction_notes=list(result.extraction_notes),
+            extraction_confidence=result.extraction_confidence,
+            page_count=result.page_count,
         )
         state.materials.append(record)
 

@@ -2,7 +2,6 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from amadeus.core.state_store import ProjectStateStore
 from amadeus.core.tool_registry import TOOL_REGISTRY
 from amadeus.models.state import ProjectState, RawInputRecord
 from amadeus.models.tools import ToolAction, ToolResult
@@ -84,7 +83,6 @@ class ToolExecutor:
                 files_to_create=[],
             ),
         )
-        store = ProjectStateStore()
         # Ensure we don't write outside base dir. Here we just update state in memory.
         self.state.project_name = reqs.project_name
         self.state.display_name = reqs.display_name

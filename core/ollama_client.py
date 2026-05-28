@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from typing import Any
 from urllib import error, request
 
+from pydantic import BaseModel
+
 logger = logging.getLogger(__name__)
 
 

@@ -29,7 +29,7 @@ def test_agent_loop_dry_run(empty_state, mock_client, tmp_path):
     )
     mock_client.generate_structured.return_value = decision
 
-    state = loop.run()
+    loop.run()
     assert len(loop.action_log) == 1
     assert loop.action_log[0].result.output == "[dry-run] Not executed."
 

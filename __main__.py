@@ -5,13 +5,16 @@ from pathlib import Path
 from amadeus.core.analyzer import TranscriptAnalyzer
 from amadeus.core.cli import (
     run_add_command,
+    run_archive_command,
     run_build_command,
     run_gaps_command,
+    run_inbox_command,
     run_materials_command,
     run_new_command,
     run_open_command,
     run_projects_command,
     run_status_command,
+    run_transcribe_command,
     run_use_command,
     run_validate_command,
 )
@@ -245,6 +248,19 @@ def main(argv: list[str] | None = None) -> int:
 
     open_parser = subparsers.add_parser("open")
     open_parser.set_defaults(func=run_open_command)
+
+    archive_parser = subparsers.add_parser("archive")
+    archive_parser.add_argument("project_name")
+    archive_parser.set_defaults(func=run_archive_command)
+
+    inbox_parser = subparsers.add_parser("inbox")
+    inbox_parser.set_defaults(func=run_inbox_command)
+
+    transcribe_parser = subparsers.add_parser("transcribe")
+    transcribe_parser.add_argument("audio_file")
+    transcribe_parser.add_argument("--model-size", default="large-v3")
+    transcribe_parser.add_argument("--language", default="de")
+    transcribe_parser.set_defaults(func=run_transcribe_command)
 
     agent_parser = subparsers.add_parser("agent")
     agent_parser.add_argument("text", nargs="?", default="")

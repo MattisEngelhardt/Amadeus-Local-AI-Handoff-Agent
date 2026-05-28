@@ -4,6 +4,7 @@ from pathlib import Path
 
 from amadeus.core.analyzer import TranscriptAnalyzer
 from amadeus.core.gap_analysis import GapAnalyzer
+from amadeus.core.inbox import register_file_input, register_text_input, store_raw_input
 from amadeus.core.project_registry import ProjectRegistry
 from amadeus.core.state_store import ProjectStateStore
 from amadeus.core.validation_suite import run_validation_suite
@@ -36,6 +37,11 @@ def run_new_command(args: argparse.Namespace) -> int:
     validator = RequirementsValidator()
     requirements = validator.validate(args.text, requirements)
 
+    registry = ProjectRegistry()
+    similar = registry.find_similar_names(requirements.project_name)
+    if similar:
+        print(f"Warning: Similar project names exist: {', '.join(similar)}")
+
     output_dir = args.output_dir or str(Path.home() / ".amadeus" / "projects")
     store = ProjectStateStore()
     project_path = store.expected_project_path(output_dir, requirements.project_name)
@@ -48,13 +54,15 @@ def run_new_command(args: argparse.Namespace) -> int:
         input_kind="text",
     )
 
+    state, input_record = register_text_input(state, args.text, channel="cli", kind="text")
+    store_raw_input(input_record, Path(project_path))
+
     gap_analyzer = GapAnalyzer()
     gap_analysis = gap_analyzer.analyze(requirements, state, args.text)
     state = gap_analyzer.apply_to_state(state, gap_analysis)
 
     store.save(state, Path(project_path))
 
-    registry = ProjectRegistry()
     entry = ProjectRegistryEntry(
         project_name=state.project_name,
         display_name=state.display_name,
@@ -62,6 +70,7 @@ def run_new_command(args: argparse.Namespace) -> int:
         phase=state.phase,
         readiness_score=state.readiness.score,
         is_active=True,
+        input_count=len(state.raw_inputs),
     )
     registry.register(entry)
     registry.set_active(state.project_name)
@@ -79,6 +88,14 @@ def run_add_command(args: argparse.Namespace) -> int:
         return 1
 
     files = [Path(f) for f in args.files]
+    for f in files:
+        state, input_record = register_file_input(state, f, channel="cli", kind="file")
+        if input_record.is_duplicate:
+            print(
+                f"Warning: '{f.name}' is a duplicate of {input_record.duplicate_of}, still adding."
+            )
+        store_raw_input(input_record, Path(entry.project_path), source_file=f)
+
     state = _ingest_materials(state, files)
 
     from amadeus.models.requirements import RequirementsModel
@@ -301,4 +318,80 @@ def run_open_command(args: argparse.Namespace) -> int:
     print(entry.project_path)
     if os.name == "nt":
         os.startfile(entry.project_path)
+    return 0
+
+
+def run_archive_command(args: argparse.Namespace) -> int:
+    registry = ProjectRegistry()
+    if registry.archive(args.project_name):
+        print(f"Project '{args.project_name}' archived.")
+        return 0
+    print(f"FAIL: Project '{args.project_name}' not found.")
+    return 1
+
+
+def run_inbox_command(args: argparse.Namespace) -> int:
+    registry = ProjectRegistry()
+    entry, state = _get_active_project_state(registry)
+    if not state:
+        return 1
+
+    print(f"Inbox for '{state.project_name}' ({len(state.raw_inputs)} inputs):\n")
+    for inp in state.raw_inputs:
+        dup = " [DUPLICATE]" if inp.is_duplicate else ""
+        text_preview = inp.raw_text[:80] + "..." if len(inp.raw_text) > 80 else inp.raw_text
+        file_info = f" file={inp.file_path}" if inp.file_path else ""
+        print(f"  {inp.input_id} [{inp.kind}] {inp.channel}{dup}{file_info}")
+        if text_preview:
+            print(f"    {text_preview}")
+    if not state.raw_inputs:
+        print("  No inputs registered.")
+    return 0
+
+
+def run_transcribe_command(args: argparse.Namespace) -> int:
+    registry = ProjectRegistry()
+    entry, state = _get_active_project_state(registry)
+    if not state:
+        return 1
+
+    audio_path = Path(args.audio_file)
+    if not audio_path.exists():
+        print(f"FAIL: Audio file not found: {audio_path}")
+        return 1
+
+    from amadeus.core.voice_pipeline import (
+        add_transcript_to_state,
+        transcribe_audio,
+        write_transcript_artifacts,
+    )
+
+    state, input_record = register_file_input(state, audio_path, channel="cli", kind="audio")
+    store_raw_input(input_record, Path(entry.project_path), source_file=audio_path)
+
+    print(f"Transcribing {audio_path.name}...")
+    result = transcribe_audio(
+        audio_path,
+        model_size=args.model_size,
+        language=args.language,
+    )
+
+    if not result.success:
+        print(f"FAIL: {result.error}")
+        return 2
+
+    raw_path, clean_path = write_transcript_artifacts(
+        result, Path(entry.project_path), input_record.input_id
+    )
+    state = add_transcript_to_state(state, result, input_record.input_id, raw_path, clean_path)
+
+    store = ProjectStateStore()
+    store.save(state, Path(entry.project_path))
+    registry.update_state(state.project_name, state)
+
+    print(f"Transcription complete. {len(result.segments)} segments.")
+    if result.uncertain_terms:
+        print(f"Uncertain terms: {', '.join(result.uncertain_terms[:5])}")
+    print(f"Raw transcript: {raw_path}")
+    print(f"Clean transcript: {clean_path}")
     return 0

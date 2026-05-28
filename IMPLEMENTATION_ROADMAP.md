@@ -449,6 +449,8 @@ Verification:
 
 ## Phase 13: Intake Inbox And Project Registry
 
+Status: Implemented on 2026-05-28. Centralized inbox, duplicate detection, and project archive support added.
+
 Goal: make all raw inputs first-class project evidence.
 
 Tasks:
@@ -489,6 +491,8 @@ Verification:
 - Smoke: create two projects, switch active project, add different materials.
 
 ## Phase 14: Complete Local Voice Pipeline
+
+Status: Implemented on 2026-05-28. Full faster-whisper integration, artifact generation, and transcript state integration added.
 
 Goal: make German voice input a reliable local first-class path.
 
@@ -533,6 +537,8 @@ Verification:
 - Validation suite catches missing raw/clean transcript files.
 
 ## Phase 15: Material Ingestion V2: Documents, Images, OCR, Links
+
+Status: Implemented on 2026-05-28. Added real PDF and DOCX adapters, image metadata extraction, and link ingestion.
 
 Goal: make Amadeus actually able to read the material types the user expects.
 

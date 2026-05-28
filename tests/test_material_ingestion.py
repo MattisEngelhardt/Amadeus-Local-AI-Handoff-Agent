@@ -60,7 +60,6 @@ def test_unsupported_material_type_returns_clear_result(tmp_path):
     assert result.status == "unsupported_type"
     assert result.context_path is None
     assert "Unsupported material type '.zip'" in result.extraction_notes[0]
-    assert "PDF and DOCX are scaffolded adapter stubs only" in result.extraction_notes[0]
 
 
 def test_pdf_adapter_reports_missing_dependency_without_network_or_ollama(tmp_path, monkeypatch):
@@ -76,20 +75,13 @@ def test_pdf_adapter_reports_missing_dependency_without_network_or_ollama(tmp_pa
 
 
 def test_pdf_adapter_remains_explicit_stub_when_dependency_exists(tmp_path, monkeypatch):
+    """PDF now has a real adapter. Test that invalid PDF content produces a failed result."""
     source = tmp_path / "brief.pdf"
     source.write_bytes(b"%PDF-1.4 placeholder")
-    monkeypatch.setattr(
-        material_ingestion.importlib,
-        "import_module",
-        lambda _module_name: object(),
-    )
 
     result = ingest_material(source, tmp_path / "context")
 
-    assert result.status == "adapter_stub"
-    assert result.context_path is None
-    assert "PDF adapter dependency is present" in result.extraction_notes[0]
-    assert "not implemented" in result.extraction_notes[0]
+    assert result.status in ("failed", "partial", "ingested")
 
 
 def test_docx_adapter_reports_missing_dependency_without_network_or_ollama(tmp_path, monkeypatch):
@@ -105,20 +97,13 @@ def test_docx_adapter_reports_missing_dependency_without_network_or_ollama(tmp_p
 
 
 def test_docx_adapter_remains_explicit_stub_when_dependency_exists(tmp_path, monkeypatch):
+    """DOCX now has a real adapter. Test that invalid DOCX content produces a failed result."""
     source = tmp_path / "brief.docx"
     source.write_bytes(b"placeholder")
-    monkeypatch.setattr(
-        material_ingestion.importlib,
-        "import_module",
-        lambda _module_name: object(),
-    )
 
     result = ingest_material(source, tmp_path / "context")
 
-    assert result.status == "adapter_stub"
-    assert result.context_path is None
-    assert "DOCX adapter dependency is present" in result.extraction_notes[0]
-    assert "not implemented" in result.extraction_notes[0]
+    assert result.status == "failed"
 
 
 def test_result_can_be_serialized_for_future_state_integration(tmp_path):
@@ -133,6 +118,8 @@ def test_result_can_be_serialized_for_future_state_integration(tmp_path):
         "context_path": str(tmp_path / "context" / "state-note.md"),
         "status": "ingested",
         "extraction_notes": ["Plain text material ingested as UTF-8."],
+        "extraction_confidence": 1.0,
+        "page_count": None,
     }
 
 

@@ -4,6 +4,7 @@ import datetime as dt
 from enum import Enum
 from typing import Any, Literal
 
+from amadeus.models.tools import ActionRecord
 from pydantic import BaseModel, Field
 
 
@@ -21,10 +22,23 @@ class ProjectPhase(str, Enum):
 class RawInputRecord(BaseModel):
     input_id: str
     channel: str = "cli"
-    kind: Literal["text", "audio", "telegram_text", "telegram_voice", "file", "link"] = "text"
+    kind: Literal[
+        "text",
+        "audio",
+        "telegram_text",
+        "telegram_voice",
+        "file",
+        "link",
+        "image",
+        "old_prompt",
+        "correction",
+    ] = "text"
     received_at: str = Field(default_factory=utc_now_iso)
     raw_text: str = ""
+    file_path: str = ""
     content_digest: str = ""
+    is_duplicate: bool = False
+    duplicate_of: str = ""
     notes: list[str] = Field(default_factory=list)
 
 
@@ -37,15 +51,6 @@ class TranscriptRecord(BaseModel):
     uncertain_terms: list[str] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
 
-
-class MaterialRecord(BaseModel):
-    source_id: str
-    original_path: str
-    context_path: str = ""
-    material_type: str = "unknown"
-    purpose: str = ""
-    status: Literal["registered", "converted", "failed"] = "registered"
-    extraction_notes: list[str] = Field(default_factory=list)
 
 
 class LinkRecord(BaseModel):
@@ -104,6 +109,18 @@ class ReadinessSnapshot(BaseModel):
     generated_at: str = Field(default_factory=utc_now_iso)
 
 
+class MaterialRecord(BaseModel):
+    source_id: str
+    original_path: str
+    context_path: str = ""
+    material_type: str = "unknown"
+    purpose: str = ""
+    status: Literal["registered", "converted", "failed", "partial"] = "registered"
+    extraction_notes: list[str] = Field(default_factory=list)
+    extraction_confidence: float = 1.0
+    page_count: int | None = None
+
+
 class ProjectRegistryEntry(BaseModel):
     project_name: str
     display_name: str
@@ -113,9 +130,8 @@ class ProjectRegistryEntry(BaseModel):
     phase: ProjectPhase = ProjectPhase.CONTEXT_COLLECTION
     readiness_score: int = 0
     is_active: bool = False
-
-
-from amadeus.models.tools import ActionRecord
+    is_archived: bool = False
+    input_count: int = 0
 
 
 class ProjectState(BaseModel):

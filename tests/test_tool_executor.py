@@ -1,4 +1,3 @@
-
 import pytest
 from amadeus.core.tool_executor import ToolExecutor
 from amadeus.models.state import GapItem, ProjectState
