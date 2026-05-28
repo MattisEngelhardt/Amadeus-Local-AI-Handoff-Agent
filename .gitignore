@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.claude/settings.local.json
+HANDOFF.md
+*.docx
+_context/
+_sources/
+_eval_runs/
+_logs/
+.venv/
